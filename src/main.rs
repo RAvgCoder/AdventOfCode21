@@ -18,6 +18,6 @@ const DAYS_COMPLETED: [fn(); 7] = [
 ];
 
 fn main() {
-    utils::helper_utils::Utils::new_day(8);
-    if let Some(day) = DAYS_COMPLETED.last() { day() }
+    // utils::helper_utils::Utils::new_day(8);
+    DAYS_COMPLETED.last().unwrap()();
 }

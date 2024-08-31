@@ -58,7 +58,7 @@ Found: {}
         let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
 
         println!(
-            "Result: {}\nTime Taken: {} milli secs and {} micro secs\n",
+            "Result: {} Time Taken: {} milli secs and {} micro secs",
             result, millis, micros
         );
     }
@@ -81,13 +81,17 @@ Found: {}
         T: std::str::FromStr,
         T::Err: std::fmt::Debug,
     {
-        let file_path = Self::get_file_path().join("inputs").join(if day_num == 0 {
-            "Example".to_string()
-        } else {
-            format!("day{}", day_num)
-        }).with_extension("txt");
+        let file_path = Self::get_file_path()
+            .join("inputs")
+            .join(if day_num == 0 {
+                "Example".to_string()
+            } else {
+                format!("day{}", day_num)
+            })
+            .with_extension("txt");
 
-        let file = File::open(&file_path).unwrap_or_else(|_| panic!("Failed to open file at {}", file_path.display()));
+        let file = File::open(&file_path)
+            .unwrap_or_else(|_| panic!("Failed to open file at {}", file_path.display()));
         let reader = BufReader::new(file);
         reader
             .lines()
@@ -116,15 +120,20 @@ Found: {}
     ///
     /// # Panics
     /// If the file already exists or if it cannot be created.
+    #[allow(dead_code)]
     pub fn new_day(day_num: i32) {
-        let src_file_path = Self::get_file_path().join(format!("day{}", day_num)).with_extension("rs");
+        let src_file_path = Self::get_file_path()
+            .join(format!("day{}", day_num))
+            .with_extension("rs");
         if src_file_path.exists() {
             panic!(
                 "Cannot create file as it already exists at {}",
                 src_file_path.display()
             );
         }
-        let input_file_path = Self::get_file_path().join("inputs").join(format!("day{}.txt", day_num));
+        let input_file_path = Self::get_file_path()
+            .join("inputs")
+            .join(format!("day{}.txt", day_num));
         if input_file_path.exists() {
             panic!(
                 "Cannot create file as it already exists at {}",
@@ -133,8 +142,10 @@ Found: {}
         }
         println!("NEW_DAY.txt: {}", input_file_path.display());
         println!("    src.rs: {}", src_file_path.display());
-        let _ = File::create(&input_file_path).unwrap_or_else(|_| panic!("Failed to create file at {}", input_file_path.display()));
-        let mut file = File::create(&src_file_path).unwrap_or_else(|_| panic!("Failed to create file at {}", src_file_path.display()));
+        let _ = File::create(&input_file_path)
+            .unwrap_or_else(|_| panic!("Failed to create file at {}", input_file_path.display()));
+        let mut file = File::create(&src_file_path)
+            .unwrap_or_else(|_| panic!("Failed to create file at {}", src_file_path.display()));
         writeln!(
             file,
             r#"use helper_utils::Utils;
@@ -167,10 +178,11 @@ fn part2(input: Vec<String>) -> u64 {{
             Utils::AOC_YEAR,
             day_num
         )
-            .expect("Failed to write to file");
+        .expect("Failed to write to file");
         println!(
             "File successfully created at location: {} & {}",
-            src_file_path.display(), input_file_path.display()
+            src_file_path.display(),
+            input_file_path.display()
         );
     }
 
@@ -181,6 +193,7 @@ fn part2(input: Vec<String>) -> u64 {{
     ///
     /// # Type Parameters
     /// * `T` - The type of the elements in the 2D array.
+    #[allow(dead_code)]
     pub fn print_2d<T: std::fmt::Debug>(arr: &[Vec<T>]) {
         for row in arr {
             for elem in row {
