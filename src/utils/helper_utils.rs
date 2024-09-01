@@ -58,7 +58,7 @@ Found: {}
         let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
 
         println!(
-            "Result: {} Time Taken: {} milli secs and {} micro secs",
+            "Result: {}\t| Time Taken: {} milli secs and {} micro secs",
             result, millis, micros
         );
     }
@@ -166,13 +166,13 @@ pub fn run() {{
 }}
 
 fn part1(input: Vec<String>) -> u64 {{
-    println!("Part 1: {{:?}}", input);
-    return 0;
+    println!("Part 1: {{:#?}}", input);
+    0
 }}
 
 fn part2(input: Vec<String>) -> u64 {{
-    println!("Part 2 {{:?}}", input);
-    return 0;
+    println!("Part 2 {{:#?}}", input);
+    0
 }}
                 "#,
             Utils::AOC_YEAR,
