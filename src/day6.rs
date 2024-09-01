@@ -1,6 +1,6 @@
 use helper_utils::Utils;
 
-use crate::day6::lantern_fish::LanternFish;
+use crate::day6::lantern_fish::LanternFishList;
 use crate::utils::helper_utils;
 
 /// Runs the Advent of Code puzzles for [Current Day](https://adventofcode.com/2021/day/6).
@@ -16,45 +16,30 @@ pub fn run() {
     Utils::run_part(part2, 2, 6, 1770823541496);
 }
 
-fn part1(input: Vec<String>) -> u64 {
+fn part1(input: Vec<LanternFishList>) -> u64 {
+    assert_eq!(input.len(), 1, "Only one list of lantern fishes should be provided");
     const MAX_DAYS_TO_SIMULATE: u16 = 80;
-    let mut lantern_fishes = input
-        .first()
-        .expect("Value should be provided for Lantern Fishes in the format <3,4,3,1,2>")
-        .split(',')
-        .map(LanternFish::new)
-        .collect::<Vec<LanternFish>>();
 
-    for _ in 0..MAX_DAYS_TO_SIMULATE {
-        let new_fishes = lantern_fishes
-            .iter_mut()
-            .filter_map(LanternFish::spawn_lantern_fish_if_ready)
-            .collect::<Vec<LanternFish>>();
-        lantern_fishes.extend(new_fishes);
-    }
-
-    lantern_fishes.len() as u64
+    simulate_days(input.first().unwrap(), MAX_DAYS_TO_SIMULATE)
 }
 
-fn part2(input: Vec<String>) -> u64 {
+fn part2(input: Vec<LanternFishList>) -> u64 {
+    assert_eq!(input.len(), 1, "Only one list of lantern fishes should be provided");
+
     const MAX_DAYS_TO_SIMULATE: u16 = 256;
 
+    simulate_days(input.first().unwrap(), MAX_DAYS_TO_SIMULATE)
+}
+
+fn simulate_days(lantern_fish_list: &LanternFishList, max_days_to_simulate: u16) -> u64 {
     let mut lantern_fishes_index = [0u64; 9];
 
-    input
-        .first()
-        .expect("Value should be provided for Lantern Fishes in the format <3,4,3,1,2>")
-        .split(',')
-        .map(|days_left_before_birth| {
-            days_left_before_birth
-                .parse::<usize>()
-                .expect("Could not parse num of days")
-        })
-        .for_each(|days_left_before_birth| {
-            lantern_fishes_index[days_left_before_birth] += 1;
+    lantern_fish_list.fishes.iter()
+        .for_each(|lantern_fish| {
+            lantern_fishes_index[lantern_fish.days_left_before_birth as usize] += 1;
         });
 
-    for _ in 0..MAX_DAYS_TO_SIMULATE {
+    for _ in 0..max_days_to_simulate {
         // Find the number of new fishes to be born
         let new_fishes = lantern_fishes_index[0];
 
@@ -72,6 +57,8 @@ fn part2(input: Vec<String>) -> u64 {
 }
 
 mod lantern_fish {
+    use std::str::FromStr;
+
     const DEFAULT_DAYS_TO_SIMULATE: u8 = 8;
     const DEFAULT_RESTART_DAYS_TO_SIMULATE: u8 = 6;
 
@@ -107,6 +94,24 @@ mod lantern_fish {
             LanternFish {
                 days_left_before_birth: DEFAULT_DAYS_TO_SIMULATE,
             }
+        }
+    }
+
+    pub struct LanternFishList {
+        pub fishes: Box<[LanternFish]>,
+    }
+
+    impl FromStr for LanternFishList {
+        type Err = ();
+
+        fn from_str(input: &str) -> Result<Self, Self::Err> {
+            Ok(LanternFishList {
+                fishes: input
+                    .split(',')
+                    .map(LanternFish::new)
+                    .collect::<Vec<LanternFish>>()
+                    .into_boxed_slice()
+            })
         }
     }
 }
