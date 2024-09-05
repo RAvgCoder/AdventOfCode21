@@ -118,13 +118,16 @@ macro_rules! bit_index_turned_on {
 }
 
 impl ClockNumber {
-    /// Returns the number of segments that are turned on for the given digit.
-    ///
-    /// # Arguments
-    /// * `digit` - The digit to check.
+    /// Counts the number of segments that are turned on for the given `ClockNumber`.
     ///
     /// # Returns
-    /// The number of segments that are turned on for the given digit.
+    /// The number of segments that are turned on.
+    ///
+    /// # Example
+    /// ```
+    /// let clock_number = ClockNumber::Three;
+    /// assert_eq!(clock_number.count_segments(), 5);
+    /// ```
     #[inline(always)]
     const fn count_segments(&self) -> u8 {
         (*self as u8).count_ones() as u8
@@ -141,6 +144,20 @@ impl ClockNumber {
         ]
     }
 
+    /// Returns an array of bit indices that are turned on for the given `ClockNumber`.
+    ///
+    /// # Arguments
+    /// * `self` - The `ClockNumber` instance.
+    ///
+    /// # Returns
+    /// An array of bit indices that are turned on.
+    ///
+    /// # Example
+    /// ```
+    /// let clock_number = ClockNumber::Three;
+    /// let bit_indices = clock_number.bit_index_turned_on::<5>();
+    /// assert_eq!(bit_indices, [0, 2, 3, 5, 6]);
+    /// ```
     const fn bit_index_turned_on<const N: usize>(self) -> [u8; N] {
         let mut bit_index = [0; N];
         let mut mask = self as u8;
@@ -160,7 +177,17 @@ impl ClockNumber {
         bit_index
     }
 
-    const fn int_repr(&self) -> u8 {
+    /// Returns the integer representation of the `ClockNumber`.
+    ///
+    /// # Returns
+    /// An unsigned 8-bit integer corresponding to the `ClockNumber`.
+    ///
+    /// # Example
+    /// ```
+    /// let clock_number = ClockNumber::Three;
+    /// assert_eq!(clock_number.int_repr(), 3);
+    /// ```
+    fn int_repr(&self) -> u8 {
         match *self {
             ClockNumber::Zero => 0,
             ClockNumber::One => 1,
@@ -176,20 +203,42 @@ impl ClockNumber {
     }
 }
 
+/// Represents the context of a signal, including unique signal patterns and output values.
+///
+/// # Fields
+/// * `unique_signal_patterns` - An array of 10 unique signal patterns.
+/// * `output_value` - An array of 4 output values.
 struct SignalContext {
     unique_signal_patterns: [String; 10],
     output_value: [String; 4],
 }
 
 impl SignalContext {
-    fn decode(&self) -> [u32; 4] {
+    /// Decodes the output values of the signal context.
+    ///
+    /// This function initializes a `SignalDecoder` with the unique signal patterns,
+    /// decodes the unique signal patterns, and then decodes the output values.
+    ///
+    /// # Returns
+    /// An array of 4 decoded output values as `u16`.
+    ///
+    /// # Example
+    /// ```
+    /// let signal_context = SignalContext {
+    ///     unique_signal_patterns: [String::from("ab"), String::from("cd"), ...],
+    ///     output_value: [String::from("ef"), String::from("gh"), ...],
+    /// };
+    /// let decoded_output = signal_context.decode();
+    /// assert_eq!(decoded_output, [1, 2, 3, 4]);
+    /// ```
+    fn decode(&self) -> [u16; 4] {
         let mut decoder_context: SignalDecoder = SignalDecoder::new(&self.unique_signal_patterns);
         decoder_context.decode_unique_signal_patterns();
 
-        let mut decoded_output: [u32; 4] = [0; 4];
+        let mut decoded_output: [u16; 4] = [0; 4];
 
         for (idx, output) in self.output_value.iter().enumerate() {
-            decoded_output[idx] = decoder_context.decode_output(output).int_repr() as u32;
+            decoded_output[idx] = decoder_context.decode_output(output).int_repr() as u16;
         }
 
         decoded_output
@@ -199,6 +248,29 @@ impl SignalContext {
 impl FromStr for SignalContext {
     type Err = &'static str;
 
+    /// Parses a string input to create a `SignalContext` instance.
+    ///
+    /// The input string is expected to have two parts separated by a '|':
+    /// the unique signal patterns and the output values. Each part contains
+    /// space-separated strings representing the signal patterns and output values respectively.
+    ///
+    /// # Arguments
+    /// * `input` - A string slice containing the unique signal patterns and output values.
+    ///
+    /// # Returns
+    /// A `Result` containing the `SignalContext` instance if parsing is successful,
+    /// or a static string slice error message if parsing fails.
+    ///
+    /// # Panics
+    /// Panics if the input string does not contain a '|' separator.
+    ///
+    /// # Example
+    /// ```
+    /// let input = "acedgfb cdfbe gcdfa fbcad dab cefabd cdfgeb eafb cagedb ab | cdfeb fcadb cdfeb cdbaf";
+    /// let signal_context = SignalContext::from_str(input).unwrap();
+    /// assert_eq!(signal_context.unique_signal_patterns.len(), 10);
+    /// assert_eq!(signal_context.output_value.len(), 4);
+    /// ```
     fn from_str(input: &str) -> Result<Self, Self::Err> {
         let mut signal_patterns: [String; 10] = core::array::from_fn(|_| String::new());
         let mut output: [String; 4] = core::array::from_fn(|_| String::new());
@@ -230,6 +302,21 @@ mod decoder {
     use crate::day8::ClockNumber;
     use std::collections::HashSet;
 
+    /// Represents a digit in a 7-segment display.
+    ///
+    /// # Fields
+    /// * `number` - The `ClockNumber` corresponding to the digit.
+    /// * `segment_chars` - A set of characters representing the segments that are turned on.
+    ///
+    /// # Example
+    /// ```
+    /// let digit = Digits {
+    ///     number: ClockNumber::Three,
+    ///     segment_chars: HashSet::from(['a', 'b', 'c', 'd', 'e']),
+    /// };
+    /// assert_eq!(digit.number, ClockNumber::Three);
+    /// assert!(digit.segment_chars.contains(&'a'));
+    /// ```
     #[derive(Debug)]
     pub struct Digits {
         number: ClockNumber,
@@ -242,18 +329,26 @@ mod decoder {
         }
     }
 
+    /// A struct for decoding signals in a 7-segment display.
+    ///
+    /// The `SignalDecoder` struct is used to decode the segments and digits of a 7-segment display
+    /// based on provided signal patterns.
     #[derive(Debug)]
     pub struct SignalDecoder<'ctx> {
-        /// a..=g
+        /// Array to store the decoded segments (a to g) of the 7-segment display.
         pub decoded_segments: [char; 7],
-        /// [One, Seven, Four, Eight]
+        /// Array to store the decoded digits (0 to 9) with their corresponding segments.
+        /// The core segments are [One, Seven, Four, Eight].
         pub decoded_digits: [Digits; 10],
+        /// Reference to the signal patterns provided as input.
         pub signal_patterns: &'ctx [String; 10],
+        /// Array to store the core segments with their encoded string patterns.
+        /// The core segments are [One, Four, Seven, Eight].
         decoded_core_segment: [(ClockNumber, &'ctx str); 4],
     }
 
     impl<'ctx> SignalDecoder<'ctx> {
-        pub(crate) fn decode_output(&self, output: &str) -> ClockNumber {
+        pub fn decode_output(&self, output: &str) -> ClockNumber {
             let output = output.chars().collect::<HashSet<_>>();
             for decoded_digit in &self.decoded_digits {
                 if decoded_digit.segment_chars.eq(&output) {
@@ -262,7 +357,8 @@ mod decoder {
             }
             panic!("Output '{:?}' not found in signal patterns", output);
         }
-        pub(crate) fn decode_unique_signal_patterns(&mut self) {
+
+        pub fn decode_unique_signal_patterns(&mut self) {
             // Decode the core segments
             for (core, pattern) in self.decoded_core_segment {
                 let mut pattern = pattern.chars();
@@ -339,7 +435,7 @@ mod decoder {
                             .extend(encoded3.chars());
 
                         // Resolve segment 1 & 3
-                        let mut third_segment = None;
+                        let mut third_segment: Option<char> = None;
                         let bc4 = bit_index_turned_on!(ClockNumber::Four);
                         for e in encoded3.chars() {
                             if e == bits[bc4[0] as usize] || e == bits[bc4[2] as usize] {
@@ -398,7 +494,7 @@ mod decoder {
 
                         let digit2 = bit_count_six_numbers.pop().expect("Digit 2 not found");
 
-                        // Decode segment 4
+                        // Resolve segment 4
                         let bits = &self.decoded_segments;
                         for e in digit2.chars() {
                             if !bits.iter().any(|c| *c == e) {
@@ -410,6 +506,12 @@ mod decoder {
                     other => panic!("{:?} is not a Core segment", other),
                 }
             }
+
+            let signal_patterns = self
+                .signal_patterns
+                .iter()
+                .map(|e| e.chars().collect::<HashSet<_>>())
+                .collect::<Vec<_>>();
 
             for decoded_digit in self.decoded_digits.iter_mut() {
                 if !decoded_digit.is_decoded() {
@@ -423,7 +525,8 @@ mod decoder {
                                     .into_iter()
                                     .collect::<HashSet<_>>();
 
-                                Self::find_decoded(self.signal_patterns, &zero).chars()
+                                self.signal_patterns[Self::find_decoded(&signal_patterns, &zero)]
+                                    .chars()
                             }
                             ClockNumber::Six => {
                                 let b_idx6 = bit_index_turned_on!(ClockNumber::Six);
@@ -432,7 +535,8 @@ mod decoder {
                                     .into_iter()
                                     .collect::<HashSet<_>>();
 
-                                Self::find_decoded(self.signal_patterns, &six).chars()
+                                self.signal_patterns[Self::find_decoded(&signal_patterns, &six)]
+                                    .chars()
                             }
                             ClockNumber::Seven => {
                                 let b_idx7 = bit_index_turned_on!(ClockNumber::Seven);
@@ -441,7 +545,8 @@ mod decoder {
                                     .into_iter()
                                     .collect::<HashSet<_>>();
 
-                                Self::find_decoded(self.signal_patterns, &seven).chars()
+                                self.signal_patterns[Self::find_decoded(&signal_patterns, &seven)]
+                                    .chars()
                             }
                             ClockNumber::Eight => {
                                 let b_idx8 = bit_index_turned_on!(ClockNumber::Eight);
@@ -450,7 +555,8 @@ mod decoder {
                                     .into_iter()
                                     .collect::<HashSet<_>>();
 
-                                Self::find_decoded(self.signal_patterns, &eight).chars()
+                                self.signal_patterns[Self::find_decoded(&signal_patterns, &eight)]
+                                    .chars()
                             }
                             ClockNumber::Two => {
                                 let b_idx2 = bit_index_turned_on!(ClockNumber::Two);
@@ -459,7 +565,8 @@ mod decoder {
                                     .into_iter()
                                     .collect::<HashSet<_>>();
 
-                                Self::find_decoded(self.signal_patterns, &two).chars()
+                                self.signal_patterns[Self::find_decoded(&signal_patterns, &two)]
+                                    .chars()
                             }
                             ClockNumber::Nine => {
                                 let b_idx9 = bit_index_turned_on!(ClockNumber::Nine);
@@ -468,7 +575,8 @@ mod decoder {
                                     .into_iter()
                                     .collect::<HashSet<_>>();
 
-                                Self::find_decoded(self.signal_patterns, &nine).chars()
+                                self.signal_patterns[Self::find_decoded(&signal_patterns, &nine)]
+                                    .chars()
                             }
                             _ => panic!(
                                 "Digit cannot be decoded here {:?} {:?}",
@@ -480,12 +588,12 @@ mod decoder {
         }
 
         fn find_decoded(
-            signal_patterns: &'ctx [String; 10],
+            signal_patterns: &[HashSet<char>],
             digit_segment_set: &HashSet<char>,
-        ) -> &'ctx str {
-            for e in signal_patterns.iter() {
-                if e.chars().collect::<HashSet<_>>().eq(digit_segment_set) {
-                    return e;
+        ) -> usize {
+            for (idx, e) in signal_patterns.iter().enumerate() {
+                if e.eq(digit_segment_set) {
+                    return idx;
                 }
             }
             panic!("Digit not found for segment set {:?}", digit_segment_set);
