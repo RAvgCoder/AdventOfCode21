@@ -22,7 +22,7 @@ impl Utils {
     /// * `T` - The type of the elements in the input vector.
     /// * `F` - The function type that takes a vector of `T` and returns a `u64`.
     ///
-    /// # Panics    
+    /// # Panics
     ///  if the expected result does not match the actual result.
     pub fn run_part<T, F>(day_func_part_to_run: F, part_num: i32, day_num: u8, expected: u64)
     where
@@ -37,6 +37,59 @@ impl Utils {
         let read_file = Self::read_file::<T>(day_num);
         let start_time = Instant::now();
         let result = day_func_part_to_run(read_file);
+        let elapsed_time = start_time.elapsed();
+
+        // The assumption is that no advent of code answer is to ever be zero cuz that'll be boring
+        if expected != 0 && result != expected {
+            println!(
+                r#"
+Assertion Failed
+----------------
+Expected: {}
+Found: {}
+            "#,
+                expected, result
+            );
+            std::process::exit(1);
+        }
+
+        // Convert to milliseconds and microseconds
+        let millis = elapsed_time.as_millis();
+        let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
+
+        println!(
+            "Result: {}\t| Time Taken: {} milli secs and {} micro secs",
+            result, millis, micros
+        );
+    }
+
+    /// Executes a function with a single input and measures its execution time.
+    ///
+    /// # Arguments
+    /// * `day_func_part_to_run` - The function to be executed.
+    /// * `part_num` - The part number of the puzzle.
+    /// * `day_num` - The day number of the puzzle.
+    /// * `expected` - The expected result for assertion.
+    ///
+    /// # Type Parameters
+    /// * `T` - The type of the input to the function.
+    /// * `F` - The function type that takes an input of type `T` and returns a `u64`.
+    ///
+    /// # Panics
+    /// If the expected result does not match the actual result.
+    pub fn run_part_single<T, F>(day_func_part_to_run: F, part_num: i32, day_num: u8, expected: u64)
+    where
+        F: FnOnce(T) -> u64,
+        T: From<Vec<String>>,
+    {
+        println!(
+            "//------------[Day {} Part {}]------------\\\\",
+            day_num, part_num
+        );
+        let read_file = Self::read_file::<String>(day_num);
+        let final_type = T::from(read_file);
+        let start_time = Instant::now();
+        let result = day_func_part_to_run(final_type);
         let elapsed_time = start_time.elapsed();
 
         // The assumption is that no advent of code answer is to ever be zero cuz that'll be boring
