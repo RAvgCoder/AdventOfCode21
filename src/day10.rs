@@ -12,8 +12,8 @@ use crate::utils::helper_utils;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 10, 0);
-    Utils::run_part(part2, 2, 0, 0);
+    Utils::run_part(part1, 1, 10, 318081);
+    Utils::run_part(part2, 2, 10, 4361305341);
 }
 
 fn part1(program: Vec<NavSubSystem>) -> u64 {
@@ -25,7 +25,7 @@ fn part1(program: Vec<NavSubSystem>) -> u64 {
     ];
 
     for nav_system in program {
-        if let Some(instruction) = nav_system.is_corrupted() {
+        if let (Some(instruction), _) = nav_system.is_corrupted() {
             match instruction {
                 Instruction::CloseAngle => map_count[0].1 += 1,
                 Instruction::CloseCurly => map_count[1].1 += 1,
@@ -36,11 +36,41 @@ fn part1(program: Vec<NavSubSystem>) -> u64 {
         }
     }
 
-    map_count.iter().map(|(k, v)| k.get_closing_points() as u64 * *v).sum()
+    map_count
+        .iter()
+        .map(|(k, v)| k.get_closing_points() as u64 * *v)
+        .sum()
 }
 
 fn part2(program: Vec<NavSubSystem>) -> u64 {
-    0
+    let mut values = program
+        .iter()
+        .filter_map(|nav_system| {
+            if let (None, stack) = nav_system.is_corrupted() {
+                const MULTIPLIER: u64 = 5;
+                Some(NavSubSystem::fix_corrupted(&stack).into_iter().fold(
+                    0u64,
+                    |mut acc, instruction| {
+                        acc *= MULTIPLIER;
+                        acc += match instruction {
+                            Instruction::CloseParen => 1,
+                            Instruction::CloseSquare => 2,
+                            Instruction::CloseCurly => 3,
+                            Instruction::CloseAngle => 4,
+                            _ => panic!("Invalid instruction: {:?}", instruction),
+                        };
+                        acc
+                    },
+                ))
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    values.sort();
+
+    values[values.len() / 2]
 }
 
 #[derive(Debug)]
@@ -49,22 +79,30 @@ struct NavSubSystem {
 }
 
 impl NavSubSystem {
-    fn is_corrupted(&self) -> Option<Instruction> {
+    fn is_corrupted(&self) -> (Option<Instruction>, Vec<Instruction>) {
         let mut stack = Vec::new();
 
         for instruction in self.instructions.iter() {
             if instruction.is_open() {
-                stack.push(instruction);
+                stack.push(*instruction);
             } else if let Some(open) = stack.pop() {
                 if !open.is_closing_for(instruction) {
-                    return Some(*instruction);
+                    return (Some(*instruction), stack);
                 }
             } else {
-                return None;
+                panic!("Stack Empty failed to pop instruction: {:?}", instruction);
             }
         }
 
-        None
+        (None, stack)
+    }
+
+    fn fix_corrupted(instruction_stack: &[Instruction]) -> Vec<Instruction> {
+        instruction_stack
+            .iter()
+            .rev()
+            .map(|instruction| instruction.generate_closing())
+            .collect()
     }
 }
 
@@ -115,6 +153,16 @@ impl Instruction {
             Instruction::OpenSquare => matches!(other, Instruction::CloseSquare),
             Instruction::OpenAngle => matches!(other, Instruction::CloseAngle),
             _ => false,
+        }
+    }
+
+    fn generate_closing(&self) -> Instruction {
+        match self {
+            Instruction::OpenParen => Instruction::CloseParen,
+            Instruction::OpenCurly => Instruction::CloseCurly,
+            Instruction::OpenSquare => Instruction::CloseSquare,
+            Instruction::OpenAngle => Instruction::CloseAngle,
+            _ => panic!("Invalid instruction: {:?}", self),
         }
     }
 
