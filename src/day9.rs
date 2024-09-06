@@ -30,36 +30,6 @@ fn part1(height_map: HeightMap) -> u64 {
     find_smallest_points(&height_map, |_, e, sum| *sum += e as u64 + 1)
 }
 
-/// Finds the smallest points in the height map using a provided function.
-///
-/// # Arguments
-/// * `height_map` - A reference to the `HeightMap` containing the height data.
-/// * `smallest_point_func` - A function that processes each smallest point found.
-///
-/// # Type Parameters
-/// * `F` - The type of the function that processes each smallest point.
-/// * `T` - The type of the result accumulated by the function.
-///
-/// # Returns
-/// The result accumulated by the `smallest_point_func`.
-fn find_smallest_points<F, T>(height_map: &HeightMap, smallest_point_func: F) -> T
-where
-    F: Fn(Position, u8, &mut T),
-    T: Default,
-{
-    let mut result: T = Default::default();
-
-    for row in height_map.iter() {
-        for (pos, e) in row {
-            if height_map.is_lowest_point(pos) {
-                smallest_point_func(pos, *e, &mut result)
-            }
-        }
-    }
-
-    result
-}
-
 /// Part 2 of the puzzle, which finds the largest basins in the height map.
 ///
 /// # Arguments
@@ -97,8 +67,38 @@ fn part2(height_map: HeightMap) -> u64 {
             panic!("Could not find min value")
         }
     })
-    .iter()
-    .product::<u64>()
+        .iter()
+        .product::<u64>()
+}
+
+/// Finds the smallest points in the height map using a provided function.
+///
+/// # Arguments
+/// * `height_map` - A reference to the `HeightMap` containing the height data.
+/// * `smallest_point_func` - A function that processes each smallest point found.
+///
+/// # Type Parameters
+/// * `F` - The type of the function that processes each smallest point.
+/// * `T` - The type of the result accumulated by the function.
+///
+/// # Returns
+/// The result accumulated by the `smallest_point_func`.
+fn find_smallest_points<F, T>(height_map: &HeightMap, smallest_point_func: F) -> T
+where
+    F: Fn(Position, u8, &mut T),
+    T: Default,
+{
+    let mut result: T = Default::default();
+
+    for row in height_map.iter() {
+        for (pos, e) in row {
+            if height_map.is_lowest_point(pos) {
+                smallest_point_func(pos, *e, &mut result)
+            }
+        }
+    }
+
+    result
 }
 
 /// Represents a height map for the puzzle.
