@@ -60,7 +60,6 @@ mod lantern_fish {
     use std::str::FromStr;
 
     const DEFAULT_DAYS_TO_SIMULATE: u8 = 8;
-    const DEFAULT_RESTART_DAYS_TO_SIMULATE: u8 = 6;
 
     #[derive(Debug)]
     #[repr(transparent)]
@@ -74,16 +73,6 @@ mod lantern_fish {
                 days_left_before_birth: days_left_before_birth
                     .parse::<u8>()
                     .expect("Could not parse num of days"),
-            }
-        }
-
-        pub fn spawn_lantern_fish_if_ready(&mut self) -> Option<LanternFish> {
-            if self.days_left_before_birth == 0 {
-                self.days_left_before_birth = DEFAULT_RESTART_DAYS_TO_SIMULATE;
-                Some(LanternFish::default())
-            } else {
-                self.days_left_before_birth -= 1;
-                None
             }
         }
     }
