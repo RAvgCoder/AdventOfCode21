@@ -1,6 +1,6 @@
 use crate::utils::coordinate::Position;
 use std::fmt::Debug;
-mod sized_grid;
+pub mod sized_grid;
 pub mod unsized_grid;
 
 /// The `Grid` trait defines the interface for a grid structure.
@@ -15,6 +15,9 @@ pub trait Grid<T> {
 
     /// Returns a reference to the row at the specified index.
     fn get_row(&self, row: usize) -> &[T];
+
+    /// Returns a mut reference to the row at the specified index.
+    fn get_row_mut(&mut self, row: usize) -> &mut [T];
 
     /// Returns a reference to the element at the specified position, if valid.
     fn get(&self, position: Position) -> Option<&T>;
@@ -53,7 +56,6 @@ pub mod iterators {
     {
         grid: &'a G,
         row: usize,
-        col: usize,
         _marker: PhantomData<&'a T>,
     }
 
@@ -67,7 +69,6 @@ pub mod iterators {
             Self {
                 grid,
                 row: 0,
-                col: 0,
                 _marker: PhantomData,
             }
         }
@@ -85,7 +86,7 @@ pub mod iterators {
                 let row_iter = RowIter {
                     row_item: self.grid.get_row(self.row),
                     row: self.row,
-                    col: self.col,
+                    col: 0,
                 };
                 self.row += 1;
                 Some(row_iter)
@@ -115,6 +116,103 @@ pub mod iterators {
             } else {
                 None
             }
+        }
+    }
+
+    pub struct GridIterMut<'a, G, T>
+    where
+        G: Grid<T>,
+        T: 'a,
+    {
+        grid: &'a mut G,
+        row: usize,
+        _marker: PhantomData<&'a mut T>,
+    }
+
+    impl<'a, G, T> GridIterMut<'a, G, T>
+    where
+        G: Grid<T>,
+        T: 'a,
+    {
+        pub fn new(grid: &'a mut G) -> Self {
+            Self {
+                grid,
+                row: 0,
+                _marker: PhantomData,
+            }
+        }
+    }
+
+    impl<'a, G, T> Iterator for GridIterMut<'a, G, T>
+    where
+        G: Grid<T>,
+        T: 'a,
+    {
+        type Item = RowIterMut<'a, T>;
+
+        /// Advances the iterator and returns the next row iterator.
+        fn next(&mut self) -> Option<Self::Item> {
+            if self.row < self.grid.num_rows() {
+                let row_item = self.grid.get_row_mut(self.row);
+                let row_iter = RowIterMut {
+                    row_item,
+                    row: self.row,
+                    col: 0,
+                };
+                self.row += 1;
+                Some(row_iter)
+            } else {
+                None
+            }
+            
+            // if self.row < self.grid.num_rows() {
+            //     let row_item = self.grid.get_row_mut(self.row);
+            //     let row_iter = RowIterMut {
+            //         row_item,
+            //         row: self.row,
+            //         col: 0,
+            //     };
+            //     self.row += 1;
+            //     Some(row_iter)
+            // } else {
+            //     None
+            // }
+        }
+    }
+
+    /// An iterator over the elements of a row in a grid.
+    pub struct RowIterMut<'a, T>
+    where
+        T: 'a,
+    {
+        row_item: &'a mut [T],
+        row: usize,
+        col: usize,
+    }
+
+    impl<'a, T> Iterator for RowIterMut<'a, T> {
+        type Item = (Position, &'a mut T);
+
+        /// Advances the iterator and returns the next element in the row.
+        fn next(&mut self) -> Option<Self::Item> {
+            let items = std::mem::replace(&mut self.row_item, &mut []);
+            if let Some((item, rest)) = items.split_first_mut() {
+                self.row_item = rest;
+                let position = Position::new(self.row as i32, self.col as i32);
+                self.col += 1;
+                Some((position, item))
+            }else {
+                None
+            }
+
+            // if self.col < self.row_item.len() {
+            //     let position = Position::new(self.row as i32, self.col as i32);
+            //     let value = &mut self.row_item[self.col];
+            //     self.col += 1;
+            //     Some((position, value))
+            // } else {
+            //     None
+            // }
         }
     }
 }
