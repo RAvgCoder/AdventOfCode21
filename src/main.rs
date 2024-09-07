@@ -9,6 +9,7 @@ mod utils;
 mod day8;
 mod day9;
 mod day10;
+mod day11;
 
 const DAYS_COMPLETED: [fn(); 10] = [
     day1::run,
@@ -24,7 +25,7 @@ const DAYS_COMPLETED: [fn(); 10] = [
 ];
 
 fn main() {
-    // utils::helper_utils::Utils::new_day(10);
+    // utils::helper_utils::Utils::new_day(11);
     // DAYS_COMPLETED.iter().for_each(|day| { day(); println!() });
     DAYS_COMPLETED.last().unwrap()();
 }
