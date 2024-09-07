@@ -1,10 +1,10 @@
 use std::iter::zip;
 
-use helper_utils::Utils;
+use day_setup::Utils;
 
 use crate::day5::diagram::Diagram;
 use crate::day5::lines::Line;
-use crate::utils::helper_utils;
+use crate::utils::day_setup;
 
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)

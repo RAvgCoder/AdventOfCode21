@@ -238,21 +238,4 @@ fn part2(input: Vec<String>) -> u64 {{
             input_file_path.display()
         );
     }
-
-    /// Prints a 2D array.
-    ///
-    /// # Arguments
-    /// * `arr` - A reference to a 2D array to be printed.
-    ///
-    /// # Type Parameters
-    /// * `T` - The type of the elements in the 2D array.
-    #[allow(dead_code)]
-    pub fn print_2d<T: std::fmt::Debug>(arr: &[Vec<T>]) {
-        for row in arr {
-            for elem in row {
-                print!("{:?}\t", elem);
-            }
-            println!();
-        }
-    }
 }

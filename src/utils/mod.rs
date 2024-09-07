@@ -1,3 +1,3 @@
-pub mod helper_utils;
 pub mod coordinate;
-pub mod gird;
+pub mod day_setup;
+pub mod grid;

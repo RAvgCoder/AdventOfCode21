@@ -1,8 +1,9 @@
 use crate::utils::coordinate::direction::Direction;
 use crate::utils::coordinate::Position;
-use crate::utils::gird::{iterators::GridIter, Grid};
-use crate::utils::helper_utils;
-use helper_utils::Utils;
+use crate::utils::day_setup;
+use crate::utils::grid::iterators::GridIter;
+use crate::utils::grid::unsized_grid::UnsizedGrid;
+use day_setup::Utils;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
 
@@ -67,8 +68,8 @@ fn part2(height_map: HeightMap) -> u64 {
             panic!("Could not find min value")
         }
     })
-        .iter()
-        .product::<u64>()
+    .iter()
+    .product::<u64>()
 }
 
 /// Finds the smallest points in the height map using a provided function.
@@ -104,7 +105,7 @@ where
 /// Represents a height map for the puzzle.
 #[derive(Debug)]
 struct HeightMap {
-    grid: Grid<u8>,
+    grid: UnsizedGrid<u8>,
 }
 
 impl HeightMap {
@@ -126,7 +127,7 @@ impl HeightMap {
     ///
     /// # Returns
     /// An iterator over the height map.
-    fn iter(&self) -> GridIter<u8> {
+    fn iter(&self) -> GridIter<UnsizedGrid<u8>, u8> {
         self.grid.iter()
     }
 
@@ -174,7 +175,7 @@ impl From<Vec<String>> for HeightMap {
             .into_boxed_slice();
 
         Self {
-            grid: Grid::from_box(grid),
+            grid: UnsizedGrid::from_box(grid),
         }
     }
 }

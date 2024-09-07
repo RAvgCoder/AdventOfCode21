@@ -1,7 +1,7 @@
 use board::Board;
-use helper_utils::Utils;
+use day_setup::Utils;
 
-use crate::utils::helper_utils;
+use crate::utils::day_setup;
 
 pub fn run() {
     // run_part(function, part_num, day_num)

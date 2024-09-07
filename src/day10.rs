@@ -1,7 +1,7 @@
-use helper_utils::Utils;
+use day_setup::Utils;
 use std::str::FromStr;
 
-use crate::utils::helper_utils;
+use crate::utils::day_setup;
 
 /// Runs the Advent of Code puzzles for [Current Day](https://adventofcode.com/2021/day/10).
 ///

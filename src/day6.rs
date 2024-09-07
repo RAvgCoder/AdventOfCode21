@@ -1,7 +1,7 @@
-use helper_utils::Utils;
+use day_setup::Utils;
 
 use crate::day6::lantern_fish::LanternFishList;
-use crate::utils::helper_utils;
+use crate::utils::day_setup;
 
 /// Runs the Advent of Code puzzles for [Current Day](https://adventofcode.com/2021/day/6).
 ///
@@ -17,14 +17,22 @@ pub fn run() {
 }
 
 fn part1(input: Vec<LanternFishList>) -> u64 {
-    assert_eq!(input.len(), 1, "Only one list of lantern fishes should be provided");
+    assert_eq!(
+        input.len(),
+        1,
+        "Only one list of lantern fishes should be provided"
+    );
     const MAX_DAYS_TO_SIMULATE: u16 = 80;
 
     simulate_days(input.first().unwrap(), MAX_DAYS_TO_SIMULATE)
 }
 
 fn part2(input: Vec<LanternFishList>) -> u64 {
-    assert_eq!(input.len(), 1, "Only one list of lantern fishes should be provided");
+    assert_eq!(
+        input.len(),
+        1,
+        "Only one list of lantern fishes should be provided"
+    );
 
     const MAX_DAYS_TO_SIMULATE: u16 = 256;
 
@@ -34,10 +42,9 @@ fn part2(input: Vec<LanternFishList>) -> u64 {
 fn simulate_days(lantern_fish_list: &LanternFishList, max_days_to_simulate: u16) -> u64 {
     let mut lantern_fishes_index = [0u64; 9];
 
-    lantern_fish_list.fishes.iter()
-        .for_each(|lantern_fish| {
-            lantern_fishes_index[lantern_fish.days_left_before_birth as usize] += 1;
-        });
+    lantern_fish_list.fishes.iter().for_each(|lantern_fish| {
+        lantern_fishes_index[lantern_fish.days_left_before_birth as usize] += 1;
+    });
 
     for _ in 0..max_days_to_simulate {
         // Find the number of new fishes to be born
@@ -99,7 +106,7 @@ mod lantern_fish {
                     .split(',')
                     .map(LanternFish::new)
                     .collect::<Vec<LanternFish>>()
-                    .into_boxed_slice()
+                    .into_boxed_slice(),
             })
         }
     }

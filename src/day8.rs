@@ -1,6 +1,6 @@
 use crate::day8::decoder::SignalDecoder;
-use crate::utils::helper_utils;
-use helper_utils::Utils;
+use crate::utils::day_setup;
+use day_setup::Utils;
 use std::str::FromStr;
 
 /// Runs the Advent of Code puzzles for [Current Day](https://adventofcode.com/2021/day/8).

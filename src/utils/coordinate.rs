@@ -50,7 +50,6 @@ impl Add<direction::Direction> for Position {
     }
 }
 
-
 pub mod direction {
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
     pub enum Direction {
@@ -68,10 +67,7 @@ pub mod direction {
                 Self::South => (1, 0),
                 Self::West => (0, -1),
             }
-            
-            
         }
-
 
         /// Returns an array containing the four cardinal directions.
         ///
@@ -130,7 +126,6 @@ pub mod direction {
                 Self::NorthWest => (-1, -1),
             }
         }
-
 
         /// Returns an array containing the eight full cardinal and intercardinal directions.
         ///
