@@ -1,12 +1,12 @@
 use std::ops::{Add, AddAssign};
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct Position {
+pub struct Coordinate {
     pub i: i32,
     pub j: i32,
 }
 
-impl Position {
+impl Coordinate {
     pub const fn new(x: i32, y: i32) -> Self {
         Self { i: x, j: y }
     }
@@ -18,7 +18,7 @@ impl Position {
 }
 
 // Implementing the AddAssign trait for += operator
-impl AddAssign for Position {
+impl AddAssign for Coordinate {
     fn add_assign(&mut self, other: Self) {
         self.i += other.i;
         self.j += other.j;
@@ -26,7 +26,7 @@ impl AddAssign for Position {
 }
 
 // Implementing the Add trait for + operator with Coordinate
-impl Add for Position {
+impl Add for Coordinate {
     type Output = Self;
 
     fn add(self, other: Self) -> Self::Output {
@@ -38,10 +38,23 @@ impl Add for Position {
 }
 
 // Implementing the Add trait for + operator with Direction
-impl Add<direction::Direction> for Position {
+impl Add<direction::Direction> for Coordinate {
     type Output = Self;
 
     fn add(self, direction: direction::Direction) -> Self::Output {
+        let (dx, dy) = direction.offset();
+        Self {
+            i: self.i + dx,
+            j: self.j + dy,
+        }
+    }
+}
+
+// Implementing the Add trait for + operator with Direction
+impl Add<direction::FullDirection> for Coordinate {
+    type Output = Self;
+
+    fn add(self, direction: direction::FullDirection) -> Self::Output {
         let (dx, dy) = direction.offset();
         Self {
             i: self.i + dx,
@@ -116,13 +129,13 @@ pub mod direction {
         #[allow(dead_code)]
         pub const fn offset(&self) -> (i32, i32) {
             match self {
-                Self::North => (-1, 0),
-                Self::NorthEast => (-1, -1),
-                Self::East => (0, -1),
+                Self::North => Direction::North.offset(),
+                Self::NorthEast => (-1, 1),
+                Self::East => Direction::East.offset(),
                 Self::SouthEast => (1, 1),
-                Self::South => (1, 0),
+                Self::South => Direction::South.offset(),
                 Self::SouthWest => (1, -1),
-                Self::West => (0, -1),
+                Self::West => Direction::West.offset(),
                 Self::NorthWest => (-1, -1),
             }
         }
