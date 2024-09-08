@@ -1,5 +1,5 @@
-use crate::utils::coordinate::direction::Direction;
-use crate::utils::coordinate::Position;
+use crate::utils::coordinate_system::direction::Direction;
+use crate::utils::coordinate_system::Coordinate;
 use crate::utils::day_setup;
 use crate::utils::grid::iterators::GridIter;
 use crate::utils::grid::unsized_grid::UnsizedGrid;
@@ -86,7 +86,7 @@ fn part2(height_map: HeightMap) -> u64 {
 /// The result accumulated by the `smallest_point_func`.
 fn find_smallest_points<F, T>(height_map: &HeightMap, smallest_point_func: F) -> T
 where
-    F: Fn(Position, u8, &mut T),
+    F: Fn(Coordinate, u8, &mut T),
     T: Default,
 {
     let mut result: T = Default::default();
@@ -119,7 +119,7 @@ impl HeightMap {
     /// # Returns
     /// An `Option` containing a reference to the height value, or `None` if the position is invalid.
     #[inline(always)]
-    fn get(&self, position: Position) -> Option<&u8> {
+    fn get(&self, position: Coordinate) -> Option<&u8> {
         self.grid.get(position)
     }
 
@@ -138,7 +138,7 @@ impl HeightMap {
     ///
     /// # Returns
     /// `true` if the position is the lowest point, `false` otherwise.
-    fn is_lowest_point(&self, position: Position) -> bool {
+    fn is_lowest_point(&self, position: Coordinate) -> bool {
         let curr_height = *self.get(position).unwrap();
         for dir in Direction::direction_list() {
             let new_pos = position + dir;

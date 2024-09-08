@@ -1,11 +1,10 @@
-use crate::utils::coordinate::Position;
+use crate::utils::coordinate_system::Coordinate;
 use crate::utils::grid::iterators::{GridIter, RowIterMut};
 use crate::utils::grid::Grid;
 use std::fmt::Debug;
 use std::iter::Enumerate;
 use std::marker::PhantomData;
 use std::slice::IterMut;
-use crate::utils::grid::sized_grid::SizedGrid;
 
 /// A dynamically sized grid structure.
 ///
@@ -94,7 +93,7 @@ impl<T> UnsizedGrid<T> {
     ///
     /// An `Option` containing a reference to the element, or `None` if the position is invalid.
     #[inline(always)]
-    pub fn get(&self, position: Position) -> Option<&T> {
+    pub fn get(&self, position: Coordinate) -> Option<&T> {
         if self.is_valid_position(position) {
             Some(&self.matrix[position.i as usize][position.j as usize])
         } else {
@@ -113,7 +112,7 @@ impl<T> UnsizedGrid<T> {
     /// An `Option` containing a mutable reference to the element, or `None` if the position is invalid.
     #[allow(dead_code)]
     #[inline(always)]
-    pub fn get_mut(&mut self, position: Position) -> Option<&mut T> {
+    pub fn get_mut(&mut self, position: Coordinate) -> Option<&mut T> {
         if self.is_valid_position(position) {
             Some(&mut self.matrix[position.i as usize][position.j as usize])
         } else {
@@ -131,7 +130,7 @@ impl<T> UnsizedGrid<T> {
     ///
     /// `true` if the position is valid, `false` otherwise.
     #[inline(always)]
-    pub fn is_valid_position(&self, position: Position) -> bool {
+    pub fn is_valid_position(&self, position: Coordinate) -> bool {
         position.i >= 0
             && position.j >= 0
             && position.i < self.num_rows() as i32
@@ -206,7 +205,7 @@ impl<T> Grid<T> for UnsizedGrid<T> {
     /// # Returns
     ///
     /// An `Option` containing a reference to the element, or `None` if the position is invalid.
-    fn get(&self, position: Position) -> Option<&T> {
+    fn get(&self, position: Coordinate) -> Option<&T> {
         self.get(position)
     }
 
@@ -219,7 +218,7 @@ impl<T> Grid<T> for UnsizedGrid<T> {
     /// # Returns
     ///
     /// An `Option` containing a mutable reference to the element, or `None` if the position is invalid.
-    fn get_mut(&mut self, position: Position) -> Option<&mut T> {
+    fn get_mut(&mut self, position: Coordinate) -> Option<&mut T> {
         self.get_mut(position)
     }
 
@@ -232,11 +231,10 @@ impl<T> Grid<T> for UnsizedGrid<T> {
     /// # Returns
     ///
     /// `true` if the position is valid, `false` otherwise.
-    fn is_valid_position(&self, position: Position) -> bool {
+    fn is_valid_position(&self, position: Coordinate) -> bool {
         self.is_valid_position(position)
     }
 }
-
 
 pub struct GridIterMut<'a, T>
 where

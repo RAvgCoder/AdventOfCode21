@@ -1,4 +1,4 @@
-use crate::utils::coordinate::Position;
+use crate::utils::coordinate_system::Coordinate;
 use crate::utils::grid::iterators::{GridIter, RowIterMut};
 use crate::utils::grid::Grid;
 use std::fmt::{Debug, Formatter};
@@ -81,7 +81,7 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     ///
     /// An `Option` containing a reference to the element, or `None` if the position is invalid.
     #[inline(always)]
-    pub fn get(&self, position: Position) -> Option<&T> {
+    pub fn get(&self, position: Coordinate) -> Option<&T> {
         if self.is_valid_position(position) {
             Some(&self.matrix[position.i as usize][position.j as usize])
         } else {
@@ -100,7 +100,7 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     /// An `Option` containing a mutable reference to the element, or `None` if the position is invalid.
     #[allow(dead_code)]
     #[inline(always)]
-    pub fn get_mut(&mut self, position: Position) -> Option<&mut T> {
+    pub fn get_mut(&mut self, position: Coordinate) -> Option<&mut T> {
         if self.is_valid_position(position) {
             Some(&mut self.matrix[position.i as usize][position.j as usize])
         } else {
@@ -118,18 +118,22 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     ///
     /// `true` if the position is valid, `false` otherwise.
     #[inline(always)]
-    pub fn is_valid_position(&self, position: Position) -> bool {
+    pub fn is_valid_position(&self, position: Coordinate) -> bool {
         position.i >= 0 && position.j >= 0 && position.i < ROW as i32 && position.j < COL as i32
     }
 }
 
 impl<T: Debug, const ROW: usize, const COL: usize> Debug for SizedGrid<T, ROW, COL> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "SizedGrid: (ROW: {} x COL:{}) {{", ROW, COL)?;
         for rows in &self.matrix {
+            write!(f, "\t")?;
             for cell in rows.iter() {
                 write!(f, "{:?} ", cell)?;
             }
+            writeln!(f)?;
         }
+        write!(f, "}}")?;
         Ok(())
     }
 }
@@ -180,7 +184,7 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
     /// # Returns
     ///
     /// An `Option` containing a reference to the element, or `None` if the position is invalid.
-    fn get(&self, position: Position) -> Option<&T> {
+    fn get(&self, position: Coordinate) -> Option<&T> {
         self.get(position)
     }
 
@@ -193,7 +197,7 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
     /// # Returns
     ///
     /// An `Option` containing a mutable reference to the element, or `None` if the position is invalid.
-    fn get_mut(&mut self, position: Position) -> Option<&mut T> {
+    fn get_mut(&mut self, position: Coordinate) -> Option<&mut T> {
         self.get_mut(position)
     }
 
@@ -206,7 +210,7 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
     /// # Returns
     ///
     /// `true` if the position is valid, `false` otherwise.
-    fn is_valid_position(&self, position: Position) -> bool {
+    fn is_valid_position(&self, position: Coordinate) -> bool {
         self.is_valid_position(position)
     }
 }

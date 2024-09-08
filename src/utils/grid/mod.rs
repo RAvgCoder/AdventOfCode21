@@ -1,5 +1,4 @@
-use crate::utils::coordinate::Position;
-use std::fmt::Debug;
+use crate::utils::coordinate_system::Coordinate;
 
 pub mod sized_grid;
 pub mod unsized_grid;
@@ -22,17 +21,17 @@ pub trait Grid<T> {
     fn get_row_mut(&mut self, row: usize) -> &mut [T];
 
     /// Returns a reference to the element at the specified position, if valid.
-    fn get(&self, position: Position) -> Option<&T>;
+    fn get(&self, position: Coordinate) -> Option<&T>;
 
     /// Returns a mutable reference to the element at the specified position, if valid.
-    fn get_mut(&mut self, position: Position) -> Option<&mut T>;
+    fn get_mut(&mut self, position: Coordinate) -> Option<&mut T>;
 
     /// Checks if the specified position is valid within the grid.
-    fn is_valid_position(&self, position: Position) -> bool;
+    fn is_valid_position(&self, position: Coordinate) -> bool;
 }
 
 pub mod iterators {
-    use crate::utils::coordinate::Position;
+    use crate::utils::coordinate_system::Coordinate;
     use crate::utils::grid::Grid;
     use std::marker::PhantomData;
 
@@ -92,12 +91,12 @@ pub mod iterators {
     }
 
     impl<'a, T> Iterator for RowIter<'a, T> {
-        type Item = (Position, &'a T);
+        type Item = (Coordinate, &'a T);
 
         /// Advances the iterator and returns the next element in the row.
         fn next(&mut self) -> Option<Self::Item> {
             if self.col < self.row_item.len() {
-                let position = Position::new(self.row as i32, self.col as i32);
+                let position = Coordinate::new(self.row as i32, self.col as i32);
                 let value = &self.row_item[self.col];
                 self.col += 1;
                 Some((position, value))
@@ -128,14 +127,14 @@ pub mod iterators {
     }
 
     impl<'a, T> Iterator for RowIterMut<'a, T> {
-        type Item = (Position, &'a mut T);
+        type Item = (Coordinate, &'a mut T);
 
         /// Advances the iterator and returns the next element in the row.
         fn next(&mut self) -> Option<Self::Item> {
             let items = std::mem::take(&mut self.row_item);
             if let Some((item, rest)) = items.split_first_mut() {
                 self.row_item = rest;
-                let position = Position::new(self.row as i32, self.col as i32);
+                let position = Coordinate::new(self.row as i32, self.col as i32);
                 self.col += 1;
                 Some((position, item))
             } else {
