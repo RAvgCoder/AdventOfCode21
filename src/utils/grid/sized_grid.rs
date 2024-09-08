@@ -1,6 +1,10 @@
 use crate::utils::coordinate::Position;
-use crate::utils::grid::iterators::GridIter;
+use crate::utils::grid::iterators::{GridIter, RowIterMut};
 use crate::utils::grid::Grid;
+use std::fmt::{Debug, Formatter};
+use std::iter::Enumerate;
+use std::marker::PhantomData;
+use std::slice::IterMut;
 
 /// A statically sized grid structure.
 ///
@@ -10,7 +14,7 @@ use crate::utils::grid::Grid;
 /// * `ROW` - The number of rows in the grid.
 /// * `COL` - The number of columns in the grid.
 pub struct SizedGrid<T, const ROW: usize, const COL: usize> {
-    matrix: [[T; COL]; ROW],
+    pub matrix: [[T; COL]; ROW],
 }
 
 impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
@@ -23,6 +27,15 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
         GridIter::new(self)
     }
 
+    /// Creates a mutable iterator over the grid.
+    ///
+    /// # Returns
+    ///
+    /// A `GridIter` over the grid.
+    pub fn iter_mut(&mut self) -> GridIterMut<'_, T, ROW, COL> {
+        GridIterMut::new(self)
+    }
+
     /// Creates a new `SizedGrid` from a 2D array.
     ///
     /// # Arguments
@@ -33,6 +46,7 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     ///
     /// A new `SizedGrid` instance.
     #[allow(dead_code)]
+    #[inline(always)]
     pub fn new(grid: [[T; COL]; ROW]) -> Self {
         Self { matrix: grid }
     }
@@ -109,6 +123,17 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     }
 }
 
+impl<T: Debug, const ROW: usize, const COL: usize> Debug for SizedGrid<T, ROW, COL> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        for rows in &self.matrix {
+            for cell in rows.iter() {
+                write!(f, "{:?} ", cell)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
     /// Returns the number of rows in the grid.
     fn num_rows(&self) -> usize {
@@ -131,6 +156,19 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
     /// A reference to the row.
     fn get_row(&self, row: usize) -> &[T] {
         &self.matrix[row]
+    }
+
+    /// Returns a mut reference to the row at the specified index.
+    ///
+    /// # Arguments
+    ///
+    /// * `row` - The index of the row.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the row.
+    fn get_row_mut(&mut self, row: usize) -> &mut [T] {
+        &mut self.matrix[row]
     }
 
     /// Returns a reference to the element at the specified position.
@@ -170,5 +208,43 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
     /// `true` if the position is valid, `false` otherwise.
     fn is_valid_position(&self, position: Position) -> bool {
         self.is_valid_position(position)
+    }
+}
+
+pub struct GridIterMut<'a, T, const ROW: usize, const COL: usize>
+where
+    T: 'a,
+{
+    grid_rows: Enumerate<IterMut<'a, [T; COL]>>,
+    _marker: PhantomData<&'a mut T>,
+}
+
+impl<'a, T, const ROW: usize, const COL: usize> GridIterMut<'a, T, ROW, COL>
+where
+    T: 'a,
+{
+    pub fn new(grid: &'a mut SizedGrid<T, ROW, COL>) -> Self {
+        let enumerated_rows = grid.matrix.iter_mut().enumerate();
+        Self {
+            grid_rows: enumerated_rows,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, T, const ROW: usize, const COL: usize> Iterator for GridIterMut<'a, T, ROW, COL>
+where
+    T: 'a,
+{
+    type Item = RowIterMut<'a, T>;
+
+    /// Advances the iterator and returns the next row iterator.
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((row, row_item)) = self.grid_rows.next() {
+            let row_iter = RowIterMut::new(row_item.as_mut_slice(), row);
+            Some(row_iter)
+        } else {
+            None
+        }
     }
 }

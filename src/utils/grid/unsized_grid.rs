@@ -1,7 +1,11 @@
 use crate::utils::coordinate::Position;
-use crate::utils::grid::iterators::GridIter;
+use crate::utils::grid::iterators::{GridIter, RowIterMut};
 use crate::utils::grid::Grid;
 use std::fmt::Debug;
+use std::iter::Enumerate;
+use std::marker::PhantomData;
+use std::slice::IterMut;
+use crate::utils::grid::sized_grid::SizedGrid;
 
 /// A dynamically sized grid structure.
 ///
@@ -180,6 +184,19 @@ impl<T> Grid<T> for UnsizedGrid<T> {
         &self.matrix[row]
     }
 
+    /// Returns a mutable reference to the row at the specified index.
+    ///
+    /// # Arguments
+    ///
+    /// * `row` - The index of the row.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the row.
+    fn get_row_mut(&mut self, row: usize) -> &mut [T] {
+        &mut self.matrix[row]
+    }
+
     /// Returns a reference to the element at the specified position.
     ///
     /// # Arguments
@@ -217,5 +234,44 @@ impl<T> Grid<T> for UnsizedGrid<T> {
     /// `true` if the position is valid, `false` otherwise.
     fn is_valid_position(&self, position: Position) -> bool {
         self.is_valid_position(position)
+    }
+}
+
+
+pub struct GridIterMut<'a, T>
+where
+    T: 'a,
+{
+    grid_rows: Enumerate<IterMut<'a, Box<[T]>>>,
+    _marker: PhantomData<&'a mut T>,
+}
+
+impl<'a, T> GridIterMut<'a, T>
+where
+    T: 'a,
+{
+    pub fn new(grid: &'a mut UnsizedGrid<T>) -> Self {
+        let enumerated_rows: Enumerate<IterMut<Box<[T]>>> = grid.matrix.iter_mut().enumerate();
+        Self {
+            grid_rows: enumerated_rows,
+            _marker: PhantomData,
+        }
+    }
+}
+
+impl<'a, T> Iterator for GridIterMut<'a, T>
+where
+    T: 'a,
+{
+    type Item = RowIterMut<'a, T>;
+
+    /// Advances the iterator and returns the next row iterator.
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((row, row_item)) = self.grid_rows.next() {
+            let row_iter = RowIterMut::new(row_item.as_mut(), row);
+            Some(row_iter)
+        } else {
+            None
+        }
     }
 }
