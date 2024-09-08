@@ -203,7 +203,7 @@ Found: {}
             file,
             r#"use helper_utils::Utils;
 
-use crate::utils::helper_utils;
+use crate::utils::day_setup::Utils;
 
 /// Runs the Advent of Code puzzles for [Current Day](https://adventofcode.com/20{}/day/{}).
 ///
