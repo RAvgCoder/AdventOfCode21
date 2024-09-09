@@ -1,6 +1,7 @@
 mod day1;
 mod day10;
 mod day11;
+mod day12;
 mod day2;
 mod day3;
 mod day4;
@@ -10,9 +11,8 @@ mod day7;
 mod day8;
 mod day9;
 mod utils;
-mod day12;
 
-const DAYS_COMPLETED: [fn(); 11] = [
+const DAYS_COMPLETED: [fn(); 12] = [
     day1::run,
     day2::run,
     day3::run,
@@ -24,6 +24,7 @@ const DAYS_COMPLETED: [fn(); 11] = [
     day9::run,
     day10::run,
     day11::run,
+    day12::run,
 ];
 
 fn main() {
