@@ -135,6 +135,10 @@ impl<N, E> Graph<N, E> {
             .map(|node| node.node_index)
     }
 
+    pub fn num_of_nodes(&self) -> usize {
+        self.nodes.len()
+    }
+
     /// Adds a new node with the specified data to the graph.
     ///
     /// # Arguments
@@ -165,7 +169,7 @@ impl<N, E> Graph<N, E> {
     /// # Returns
     ///
     /// A reference to the data stored in the node.
-    fn get_node_data(&self, node_index: NodeIndex) -> &N {
+    pub fn get_node_data(&self, node_index: NodeIndex) -> &N {
         &self.nodes[node_index.idx].data
     }
 
@@ -224,6 +228,36 @@ impl<N, E> Graph<N, E> {
 
         self.add_edge(from_index, to_index, edge_data);
     }
+
+    fn get_edge(&self, edge_index: EdgeIndex) -> &Edge<E> {
+        &self.edges[edge_index.idx]
+    }
+
+    pub fn neighbours_iter(&self, node_index: NodeIndex) -> Neighbours<N, E> {
+        Neighbours {
+            graph: self,
+            edges: self.nodes[node_index.idx].first_edge,
+        }
+    }
+}
+
+pub struct Neighbours<'a, N, E> {
+    graph: &'a Graph<N, E>,
+    edges: Option<EdgeIndex>,
+}
+
+impl<N, E> Iterator for Neighbours<'_, N, E> {
+    type Item = NodeIndex;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some(edge_index) = self.edges {
+            let edge = self.graph.get_edge(edge_index);
+            self.edges = edge.next_edge;
+            Some(edge.to)
+        } else {
+            None
+        }
+    }
 }
 
 impl<N, E> std::fmt::Debug for Graph<N, E>
@@ -247,10 +281,10 @@ where
             if !visited.contains(&nodes.node_index) {
                 let mut curr_edge = nodes.first_edge;
                 if curr_edge.is_none() {
-                    writeln!(f, "\tNode: '{:?}' : []", nodes.data)?;
+                    writeln!(f, "\tNode: ({:?}) (Data: '{:?}') : []", nodes.node_index, nodes.data)?;
                     continue;
                 }
-                writeln!(f, "\tNode: '{:?}' : [", nodes.data)?;
+                writeln!(f, "\tNode: ({:?}) (Data: '{:?}') : [", nodes.node_index, nodes.data)?;
                 while let Some(edge_index) = curr_edge {
                     let edge = &self.edges[edge_index.idx];
                     writeln!(
@@ -284,7 +318,10 @@ where
     ///
     /// A new instance of `Graph`.
     fn from(hash_map: HashMap<N, N>) -> Self {
-        let mut graph = Self::new();
+        let mut graph = Self {
+            edges: Vec::with_capacity(hash_map.len()),
+            nodes: Vec::with_capacity(hash_map.len()),
+        };
         for (from, to) in hash_map {
             graph.add_edge_by_data(from, to, E::default());
         }
@@ -307,7 +344,10 @@ where
     ///
     /// A new instance of `Graph`.
     fn from(vec_tuple: Vec<(N, N)>) -> Self {
-        let mut graph = Self::new();
+        let mut graph = Self {
+            edges: Vec::with_capacity(vec_tuple.len()),
+            nodes: Vec::with_capacity(vec_tuple.len()),
+        };
         for (from, to) in vec_tuple {
             graph.add_edge_by_data(from, to, E::default());
         }
@@ -329,9 +369,12 @@ where
     /// # Returns
     ///
     /// A new instance of `Graph`.
-    fn from(vec_tuple: [(N, N); S]) -> Self {
-        let mut graph = Self::new();
-        for (from, to) in vec_tuple {
+    fn from(array_tuple: [(N, N); S]) -> Self {
+        let mut graph = Self {
+            edges: Vec::with_capacity(array_tuple.len()),
+            nodes: Vec::with_capacity(array_tuple.len()),
+        };
+        for (from, to) in array_tuple {
             graph.add_edge_by_data(from, to, E::default());
         }
         graph
