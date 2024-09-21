@@ -43,7 +43,7 @@ use std::fmt::Formatter;
 /// graph.add_edge(node_c, node_a, edge_data);
 ///
 /// // Find a node by data
-/// if let Some(node_index) = graph.find_node_index(&"B") {
+/// if let Some(node_index) = graph.find_node_index(|node: &&str| node == &"B") {
 ///     // Retrieve and print the data of the found node
 ///     let node_data = graph.get_node_data(node_index);
 ///     println!("Node data: {}", node_data);
@@ -250,13 +250,11 @@ impl<N, E> Iterator for Neighbours<'_, N, E> {
     type Item = NodeIndex;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(edge_index) = self.edges {
+        self.edges.map(|edge_index| {
             let edge = self.graph.get_edge(edge_index);
             self.edges = edge.next_edge;
-            Some(edge.to)
-        } else {
-            None
-        }
+            edge.to
+        })
     }
 }
 
@@ -281,10 +279,18 @@ where
             if !visited.contains(&nodes.node_index) {
                 let mut curr_edge = nodes.first_edge;
                 if curr_edge.is_none() {
-                    writeln!(f, "\tNode: ({:?}) (Data: '{:?}') : []", nodes.node_index, nodes.data)?;
+                    writeln!(
+                        f,
+                        "\tNode: ({:?}) (Data: '{:?}') : []",
+                        nodes.node_index, nodes.data
+                    )?;
                     continue;
                 }
-                writeln!(f, "\tNode: ({:?}) (Data: '{:?}') : [", nodes.node_index, nodes.data)?;
+                writeln!(
+                    f,
+                    "\tNode: ({:?}) (Data: '{:?}') : [",
+                    nodes.node_index, nodes.data
+                )?;
                 while let Some(edge_index) = curr_edge {
                     let edge = &self.edges[edge_index.idx];
                     writeln!(
