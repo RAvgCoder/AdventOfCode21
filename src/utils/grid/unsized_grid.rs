@@ -248,6 +248,7 @@ impl<'a, T> GridIterMut<'a, T>
 where
     T: 'a,
 {
+    #[allow(dead_code)]
     pub fn new(grid: &'a mut UnsizedGrid<T>) -> Self {
         let enumerated_rows: Enumerate<IterMut<Box<[T]>>> = grid.matrix.iter_mut().enumerate();
         Self {

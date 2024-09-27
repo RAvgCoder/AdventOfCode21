@@ -13,7 +13,7 @@ use std::fmt::{Debug, Formatter};
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
     Utils::run_part_single(part1, 1, 12, 4691);
-    Utils::run_part_single(part2, 2, 0, 0);
+    Utils::run_part_single(part2, 2, 12, 0);
 }
 
 fn part1(cave_map: CaveMap) -> u64 {
@@ -21,13 +21,15 @@ fn part1(cave_map: CaveMap) -> u64 {
     distinct_path_once(&cave_map, &cave_map.start, &mut small_caves_stack)
 }
 
+#[allow(dead_code)]
 fn part2(cave_map: CaveMap) -> u64 {
-    println!("{:?}", cave_map.map);
-    let mut small_caves_stack: HashSet<NodePtr> =
+    // println!("{:?}", cave_map.map);
+    let mut _small_caves_stack: HashSet<NodePtr> =
         HashSet::with_capacity(cave_map.map.num_of_nodes());
-    let mut curr_node_to_repeat: Option<(NodePtr, bool)> = None;
+    let mut _curr_node_to_repeat: Option<(NodePtr, bool)> = None;
 
-    distinct_path_twice(&cave_map, &cave_map.start, &mut small_caves_stack, &mut curr_node_to_repeat, &mut Vec::new())
+    // distinct_path_twice(&cave_map, &cave_map.start, &mut small_caves_stack, &mut curr_node_to_repeat, &mut Vec::new())
+    0
 }
 
 fn distinct_path_once(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_stack: &mut Vec<NodePtr>) -> u64 {
@@ -57,30 +59,31 @@ fn distinct_path_once(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_stac
     result
 }
 
+#[allow(dead_code)]
 fn distinct_path_twice(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_stack: &mut HashSet<NodePtr>, curr_node_to_repeat: &mut Option<(NodePtr, bool)>, path: &mut Vec<Cave>) -> u64 {
     path.push(cave_map.map.get_node_data(curr_index).clone());
     if *curr_index == cave_map.end {
-        {
-            println!("{{");
-            println!("\t{:?}", curr_node_to_repeat.clone().map(|(n, _)| {
-                cave_map.map.get_node_data(&n)
-            }));
-            {
-                print!("\t[");
-                path.iter().for_each(|node| {
-                    print!("{:?}, ", node);
-                });
-                println!("]");
-            }
-            {
-                print!("\t[");
-                small_caves_stack.iter().for_each(|node| {
-                    print!("{:?}, ", cave_map.map.get_node_data(node));
-                });
-                println!("]");
-            }
-            println!("}}");
-        }
+        // {
+        //     println!("{{");
+        //     println!("\t{:?}", curr_node_to_repeat.clone().map(|(n, _)| {
+        //         cave_map.map.get_node_data(&n)
+        //     }));
+        //     {
+        //         print!("\t[");
+        //         path.iter().for_each(|node| {
+        //             print!("{:?}, ", node);
+        //         });
+        //         println!("]");
+        //     }
+        //     {
+        //         print!("\t[");
+        //         small_caves_stack.iter().for_each(|node| {
+        //             print!("{:?}, ", cave_map.map.get_node_data(node));
+        //         });
+        //         println!("]");
+        //     }
+        //     println!("}}");
+        // }
         path.pop();
         return 1;
     }

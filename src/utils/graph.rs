@@ -107,6 +107,8 @@ impl<N, E> Graph<N, E> {
     /// # Returns
     ///
     /// A new instance of `Graph`.
+    #[allow(dead_code)]
+    #[inline]
     pub fn new() -> Self {
         Self {
             nodes: Vec::new(),
@@ -183,6 +185,7 @@ impl<N, E> Graph<N, E> {
     /// # Returns
     ///
     /// A mutable reference to the data stored in the node.
+    #[allow(dead_code)]
     fn get_node_data_mut(&mut self, node_index: NodePtr) -> &mut N {
         &mut self.nodes[node_index.idx].data
     }

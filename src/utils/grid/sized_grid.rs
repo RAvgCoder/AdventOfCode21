@@ -23,6 +23,7 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     /// # Returns
     ///
     /// A `GridIter` over the grid.
+    #[allow(dead_code)]
     pub fn iter(&self) -> GridIter<'_, Self, T> {
         GridIter::new(self)
     }
