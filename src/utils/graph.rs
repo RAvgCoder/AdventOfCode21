@@ -62,8 +62,8 @@ pub struct Graph<N, E> {
 /// This struct is a transparent wrapper around a `usize` and is used to uniquely
 /// identify nodes within the graph.
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct NodeIndex {
+#[derive(Debug, Clone,  PartialEq, Eq, Hash)]
+pub struct NodePtr {
     idx: usize,
 }
 
@@ -75,8 +75,8 @@ pub struct NodeIndex {
 #[derive(Debug)]
 struct Node<N> {
     data: N,
-    node_index: NodeIndex,
-    first_edge: Option<EdgeIndex>,
+    node_index: NodePtr,
+    first_edge: Option<EdgePtr>,
 }
 
 /// Represents the index of an edge in the graph.
@@ -84,8 +84,8 @@ struct Node<N> {
 /// This struct is a transparent wrapper around a `usize` and is used to uniquely
 /// identify edges within the graph.
 #[repr(transparent)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct EdgeIndex {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct EdgePtr {
     idx: usize,
 }
 
@@ -97,8 +97,8 @@ pub struct EdgeIndex {
 #[derive(Debug)]
 struct Edge<E> {
     data: E,
-    to: NodeIndex,
-    next_edge: Option<EdgeIndex>,
+    to: NodePtr,
+    next_edge: Option<EdgePtr>,
 }
 
 impl<N, E> Graph<N, E> {
@@ -124,7 +124,7 @@ impl<N, E> Graph<N, E> {
     /// # Returns
     ///
     /// An `Option` containing the `NodeIndex` if found, or `None` if not found.
-    pub fn find_node_index<F>(&self, find_fn: F) -> Option<NodeIndex>
+    pub fn find_node_index<F>(&self, find_fn: F) -> Option<NodePtr>
     where
         N: PartialEq + Eq,
         F: Fn(&N) -> bool,
@@ -132,7 +132,7 @@ impl<N, E> Graph<N, E> {
         self.nodes
             .iter()
             .find(|node| find_fn(&node.data))
-            .map(|node| node.node_index)
+            .map(|node| node.node_index.clone())
     }
 
     pub fn num_of_nodes(&self) -> usize {
@@ -148,15 +148,16 @@ impl<N, E> Graph<N, E> {
     /// # Returns
     ///
     /// The `NodeIndex` of the newly added node.
-    pub fn add_node(&mut self, data: N) -> NodeIndex {
-        let node_index = NodeIndex {
+    pub fn add_node(&mut self, data: N) -> NodePtr {
+        let node_index = NodePtr {
             idx: self.nodes.len(),
         };
         self.nodes.push(Node {
             data,
-            node_index,
+            node_index: node_index.clone(),
             first_edge: None,
         });
+
         node_index
     }
 
@@ -169,7 +170,7 @@ impl<N, E> Graph<N, E> {
     /// # Returns
     ///
     /// A reference to the data stored in the node.
-    pub fn get_node_data(&self, node_index: NodeIndex) -> &N {
+    pub fn get_node_data(&self, node_index: &NodePtr) -> &N {
         &self.nodes[node_index.idx].data
     }
 
@@ -182,7 +183,7 @@ impl<N, E> Graph<N, E> {
     /// # Returns
     ///
     /// A mutable reference to the data stored in the node.
-    fn get_node_data_mut(&mut self, node_index: NodeIndex) -> &mut N {
+    fn get_node_data_mut(&mut self, node_index: NodePtr) -> &mut N {
         &mut self.nodes[node_index.idx].data
     }
 
@@ -193,14 +194,14 @@ impl<N, E> Graph<N, E> {
     /// * `from` - The index of the source node.
     /// * `to` - The index of the destination node.
     /// * `edge_data` - The data to store in the new edge.
-    pub fn add_edge(&mut self, from: NodeIndex, to: NodeIndex, edge_data: E) {
-        let new_edge_index = Some(EdgeIndex {
+    pub fn add_edge(&mut self, from: NodePtr, to: NodePtr, edge_data: E) {
+        let new_edge_index = Some(EdgePtr {
             idx: self.edges.len(),
         });
         self.edges.push(Edge {
             data: edge_data,
             to,
-            next_edge: self.nodes[from.idx].first_edge,
+            next_edge: self.nodes[from.idx].first_edge.clone(),
         });
         self.nodes[from.idx].first_edge = new_edge_index;
     }
@@ -229,31 +230,31 @@ impl<N, E> Graph<N, E> {
         self.add_edge(from_index, to_index, edge_data);
     }
 
-    fn get_edge(&self, edge_index: EdgeIndex) -> &Edge<E> {
+    fn get_edge(&self, edge_index: EdgePtr) -> &Edge<E> {
         &self.edges[edge_index.idx]
     }
 
-    pub fn neighbours_iter(&self, node_index: NodeIndex) -> Neighbours<N, E> {
+    pub fn neighbours_iter(&self, node_index: &NodePtr) -> Neighbours<N, E> {
         Neighbours {
             graph: self,
-            edges: self.nodes[node_index.idx].first_edge,
+            edges: self.nodes[node_index.idx].first_edge.clone(),
         }
     }
 }
 
 pub struct Neighbours<'a, N, E> {
     graph: &'a Graph<N, E>,
-    edges: Option<EdgeIndex>,
+    edges: Option<EdgePtr>,
 }
 
 impl<N, E> Iterator for Neighbours<'_, N, E> {
-    type Item = NodeIndex;
+    type Item = NodePtr;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.edges.map(|edge_index| {
+        self.edges.clone().map(|edge_index| {
             let edge = self.graph.get_edge(edge_index);
-            self.edges = edge.next_edge;
-            edge.to
+            self.edges = edge.next_edge.clone();
+            edge.to.clone()
         })
     }
 }
@@ -277,7 +278,7 @@ where
         writeln!(f, "Graph: ({} nodes) {{", self.nodes.len())?;
         for nodes in self.nodes.iter() {
             if !visited.contains(&nodes.node_index) {
-                let mut curr_edge = nodes.first_edge;
+                let mut curr_edge = nodes.first_edge.clone();
                 if curr_edge.is_none() {
                     writeln!(
                         f,
@@ -291,17 +292,17 @@ where
                     "\tNode: ({:?}) (Data: '{:?}') : [",
                     nodes.node_index, nodes.data
                 )?;
-                while let Some(edge_index) = curr_edge {
+                while let Some(edge_index) = curr_edge.clone() {
                     let edge = &self.edges[edge_index.idx];
                     writeln!(
                         f,
                         "\t\tEdge: '{:?}' ->  To: '{:?}'",
                         edge.data, self.nodes[edge.to.idx].data
                     )?;
-                    curr_edge = edge.next_edge;
+                    curr_edge = edge.next_edge.clone();
                 }
                 writeln!(f, "\t]")?;
-                visited.push(nodes.node_index)
+                visited.push(nodes.node_index.clone())
             }
         }
         write!(f, "}}")?;
