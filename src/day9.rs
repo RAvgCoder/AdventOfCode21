@@ -16,8 +16,8 @@ use std::fmt::Debug;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part_single(part1, 1, 9, 486);
-    Utils::run_part_single(part2, 2, 9, 0);
+    Utils::run_part_single(part1, 1, 9, Some(486));
+    Utils::run_part_single(part2, 2, 9, Some(1059300));
 }
 
 /// Part 1 of the puzzle, which finds the smallest points in the height map.
@@ -51,7 +51,7 @@ fn part2(height_map: HeightMap) -> u64 {
             has_visited.insert(pos);
             for dir in Direction::direction_list() {
                 let position = pos + dir;
-                if let Some(&new_height) = height_map.get(position) {
+                if let Some(&new_height) = height_map.get(&position) {
                     if new_height < HeightMap::HIGHEST_POINT {
                         queue.push_back(position);
                     }
@@ -119,7 +119,7 @@ impl HeightMap {
     /// # Returns
     /// An `Option` containing a reference to the height value, or `None` if the position is invalid.
     #[inline(always)]
-    fn get(&self, position: Coordinate) -> Option<&u8> {
+    fn get(&self, position: &Coordinate) -> Option<&u8> {
         self.grid.get(position)
     }
 
@@ -139,10 +139,10 @@ impl HeightMap {
     /// # Returns
     /// `true` if the position is the lowest point, `false` otherwise.
     fn is_lowest_point(&self, position: Coordinate) -> bool {
-        let curr_height = *self.get(position).unwrap();
+        let curr_height = *self.get(&position).unwrap();
         for dir in Direction::direction_list() {
             let new_pos = position + dir;
-            if let Some(new_height) = self.get(new_pos) {
+            if let Some(new_height) = self.get(&new_pos) {
                 if *new_height <= curr_height {
                     return false;
                 }
