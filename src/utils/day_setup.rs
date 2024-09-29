@@ -42,9 +42,9 @@ impl Utils {
             "//------------[Day {} Part {}]------------\\\\",
             day_num, part_num
         );
-        
+
         let read_file = Self::read_file::<T>(day_num);
-        
+
         let (elapsed_time, result) = Self::time_it(move || day_func_part_to_run(read_file));
 
         Self::log_results(expected, result, elapsed_time);
@@ -84,18 +84,18 @@ impl Utils {
             "//------------[Day {} Part {}]------------\\\\",
             day_num, part_num
         );
-        
+
         let read_file = Self::read_file::<String>(day_num);
         let (parsing_time, final_type) = Self::time_it(move || T::from(read_file));
         println!(
             "Time taken to parse: {:?}",
             Self::log_elapsed_time(parsing_time)
         );
-        
+
         let (elapsed_time, result) = Self::time_it(move || day_func_part_to_run(final_type));
-        
+
         Self::log_results(expected, result, elapsed_time);
-        
+
         println!(
             "Total time taken: {:?}",
             Self::log_elapsed_time(parsing_time + elapsed_time)
@@ -279,7 +279,7 @@ fn part2(input: Vec<String>) -> u64 {{
             Utils::AOC_YEAR,
             day_num
         )
-            .expect("Failed to write to file");
+        .expect("Failed to write to file");
         println!(
             "File successfully created at location: {} & {}",
             src_file_path.display(),

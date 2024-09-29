@@ -80,7 +80,7 @@ impl Origami {
             *grid.get_mut(point).unwrap() = '#';
         }
 
-        println!("{:?}",grid);
+        println!("{:?}", grid);
     }
 }
 
