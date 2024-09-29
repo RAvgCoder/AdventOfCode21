@@ -1,6 +1,6 @@
 use crate::utils::coordinate_system::Coordinate;
 use crate::utils::grid::iterators::{GridIter, RowIterMut};
-use crate::utils::grid::Grid;
+use crate::utils::grid::{Grid, GridMut};
 use std::fmt::Debug;
 use std::iter::Enumerate;
 use std::marker::PhantomData;
@@ -49,6 +49,37 @@ impl<T> UnsizedGrid<T> {
         Self { matrix: grid }
     }
 
+    /// Creates a new `UnsizedGrid` with the specified number of rows and columns,
+    /// initializing all elements to the provided default value.
+    ///
+    /// # Arguments
+    ///
+    /// * `rows` - The number of rows in the grid.
+    /// * `cols` - The number of columns in the grid.
+    /// * `default` - The default value to initialize each element in the grid.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - The type of elements stored in the grid. Must implement the `Clone` trait.
+    ///
+    /// # Returns
+    ///
+    /// A new `UnsizedGrid` instance with the specified dimensions and default values.
+    pub fn new_with_size(rows: usize, cols: usize, default: T) -> Self
+    where
+        T: Clone,
+    {
+        let mut grid = Vec::with_capacity(rows);
+        for _ in 0..rows {
+            let mut row = Vec::with_capacity(cols);
+            for _ in 0..cols {
+                row.push(default.clone());
+            }
+            grid.push(row);
+        }
+        Self::new(grid)
+    }
+
     /// Creates a new `UnsizedGrid` from a boxed 2D slice.
     ///
     /// # Arguments
@@ -83,58 +114,58 @@ impl<T> UnsizedGrid<T> {
         self.matrix[0].len()
     }
 
-    /// Returns a reference to the element at the specified position.
+    /// Returns a reference to the element at the specified coordinate.
     ///
     /// # Arguments
     ///
-    /// * `position` - The position of the element.
+    /// * `coordinate` - The coordinate of the element.
     ///
     /// # Returns
     ///
-    /// An `Option` containing a reference to the element, or `None` if the position is invalid.
+    /// An `Option` containing a reference to the element, or `None` if the coordinate is invalid.
     #[inline(always)]
-    pub fn get(&self, position: Coordinate) -> Option<&T> {
-        if self.is_valid_position(position) {
-            Some(&self.matrix[position.i as usize][position.j as usize])
+    pub fn get(&self, coordinate: &Coordinate) -> Option<&T> {
+        if self.is_valid_coordinate(coordinate) {
+            Some(&self.matrix[coordinate.i as usize][coordinate.j as usize])
         } else {
             None
         }
     }
 
-    /// Returns a mutable reference to the element at the specified position.
+    /// Returns a mutable reference to the element at the specified coordinate.
     ///
     /// # Arguments
     ///
-    /// * `position` - The position of the element.
+    /// * `coordinate` - The coordinate of the element.
     ///
     /// # Returns
     ///
-    /// An `Option` containing a mutable reference to the element, or `None` if the position is invalid.
+    /// An `Option` containing a mutable reference to the element, or `None` if the coordinate is invalid.
     #[allow(dead_code)]
     #[inline(always)]
-    pub fn get_mut(&mut self, position: Coordinate) -> Option<&mut T> {
-        if self.is_valid_position(position) {
-            Some(&mut self.matrix[position.i as usize][position.j as usize])
+    pub fn get_mut(&mut self, coordinate: &Coordinate) -> Option<&mut T> {
+        if self.is_valid_coordinate(coordinate) {
+            Some(&mut self.matrix[coordinate.i as usize][coordinate.j as usize])
         } else {
             None
         }
     }
 
-    /// Checks if the specified position is valid within the grid.
+    /// Checks if the specified coordinate is valid within the grid.
     ///
     /// # Arguments
     ///
-    /// * `position` - The position to check.
+    /// * `coordinate` - The coordinate to check.
     ///
     /// # Returns
     ///
-    /// `true` if the position is valid, `false` otherwise.
+    /// `true` if the coordinate is valid, `false` otherwise.
     #[inline(always)]
-    pub fn is_valid_position(&self, position: Coordinate) -> bool {
-        position.i >= 0
-            && position.j >= 0
-            && position.i < self.num_rows() as i32
-            && position.j < self.num_cols() as i32
+    pub fn is_valid_coordinate(&self, coordinate: &Coordinate) -> bool {
+        coordinate.i >= 0
+            && coordinate.j >= 0
+            && coordinate.i < self.num_rows() as i32
+            && coordinate.j < self.num_cols() as i32
     }
 }
 
@@ -149,12 +180,14 @@ impl<T: Debug> Debug for UnsizedGrid<T> {
     ///
     /// A `Result` indicating success or failure.
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "UnsizedGrid: {{")?;
         for row in self.matrix.iter() {
             for cell in row.iter() {
                 write!(f, "{:?} ", cell)?;
             }
             writeln!(f)?;
         }
+        write!(f, "}}")?;
         Ok(())
     }
 }
@@ -183,6 +216,34 @@ impl<T> Grid<T> for UnsizedGrid<T> {
         &self.matrix[row]
     }
 
+    /// Returns a reference to the element at the specified coordinate.
+    ///
+    /// # Arguments
+    ///
+    /// * `coordinate` - The coordinate of the element.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing a reference to the element, or `None` if the coordinate is invalid.
+    fn get(&self, coordinate: &Coordinate) -> Option<&T> {
+        self.get(coordinate)
+    }
+
+    /// Checks if the specified coordinate is valid within the grid.
+    ///
+    /// # Arguments
+    ///
+    /// * `coordinate` - The coordinate to check.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the coordinate is valid, `false` otherwise.
+    fn is_valid_coordinate(&self, coordinate: &Coordinate) -> bool {
+        self.is_valid_coordinate(coordinate)
+    }
+}
+
+impl<T> GridMut<T> for UnsizedGrid<T> {
     /// Returns a mutable reference to the row at the specified index.
     ///
     /// # Arguments
@@ -196,43 +257,17 @@ impl<T> Grid<T> for UnsizedGrid<T> {
         &mut self.matrix[row]
     }
 
-    /// Returns a reference to the element at the specified position.
+    /// Returns a mutable reference to the element at the specified coordinate.
     ///
     /// # Arguments
     ///
-    /// * `position` - The position of the element.
+    /// * `coordinate` - The coordinate of the element.
     ///
     /// # Returns
     ///
-    /// An `Option` containing a reference to the element, or `None` if the position is invalid.
-    fn get(&self, position: Coordinate) -> Option<&T> {
-        self.get(position)
-    }
-
-    /// Returns a mutable reference to the element at the specified position.
-    ///
-    /// # Arguments
-    ///
-    /// * `position` - The position of the element.
-    ///
-    /// # Returns
-    ///
-    /// An `Option` containing a mutable reference to the element, or `None` if the position is invalid.
-    fn get_mut(&mut self, position: Coordinate) -> Option<&mut T> {
-        self.get_mut(position)
-    }
-
-    /// Checks if the specified position is valid within the grid.
-    ///
-    /// # Arguments
-    ///
-    /// * `position` - The position to check.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the position is valid, `false` otherwise.
-    fn is_valid_position(&self, position: Coordinate) -> bool {
-        self.is_valid_position(position)
+    /// An `Option` containing a mutable reference to the element, or `None` if the coordinate is invalid.
+    fn get_mut(&mut self, coordinate: &Coordinate) -> Option<&mut T> {
+        self.get_mut(coordinate)
     }
 }
 

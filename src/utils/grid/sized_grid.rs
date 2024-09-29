@@ -1,6 +1,6 @@
 use crate::utils::coordinate_system::Coordinate;
 use crate::utils::grid::iterators::{GridIter, RowIterMut};
-use crate::utils::grid::Grid;
+use crate::utils::grid::{Grid, GridMut};
 use std::fmt::{Debug, Formatter};
 use std::iter::Enumerate;
 use std::marker::PhantomData;
@@ -82,8 +82,8 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     ///
     /// An `Option` containing a reference to the element, or `None` if the position is invalid.
     #[inline(always)]
-    pub fn get(&self, position: Coordinate) -> Option<&T> {
-        if self.is_valid_position(position) {
+    pub fn get(&self, position: &Coordinate) -> Option<&T> {
+        if self.is_valid_coordinate(position) {
             Some(&self.matrix[position.i as usize][position.j as usize])
         } else {
             None
@@ -101,8 +101,8 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     /// An `Option` containing a mutable reference to the element, or `None` if the position is invalid.
     #[allow(dead_code)]
     #[inline(always)]
-    pub fn get_mut(&mut self, position: Coordinate) -> Option<&mut T> {
-        if self.is_valid_position(position) {
+    pub fn get_mut(&mut self, position: &Coordinate) -> Option<&mut T> {
+        if self.is_valid_coordinate(&position) {
             Some(&mut self.matrix[position.i as usize][position.j as usize])
         } else {
             None
@@ -119,7 +119,7 @@ impl<T, const ROW: usize, const COL: usize> SizedGrid<T, ROW, COL> {
     ///
     /// `true` if the position is valid, `false` otherwise.
     #[inline(always)]
-    pub fn is_valid_position(&self, position: Coordinate) -> bool {
+    pub fn is_valid_coordinate(&self, position: &Coordinate) -> bool {
         position.i >= 0 && position.j >= 0 && position.i < ROW as i32 && position.j < COL as i32
     }
 }
@@ -163,7 +163,35 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
         &self.matrix[row]
     }
 
-    /// Returns a mut reference to the row at the specified index.
+    /// Returns a reference to the element at the specified position.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - The position of the element.
+    ///
+    /// # Returns
+    ///
+    /// An `Option` containing a reference to the element, or `None` if the position is invalid.
+    fn get(&self, position: &Coordinate) -> Option<&T> {
+        self.get(position)
+    }
+
+    /// Checks if the specified position is valid within the grid.
+    ///
+    /// # Arguments
+    ///
+    /// * `position` - The position to check.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the position is valid, `false` otherwise.
+    fn is_valid_coordinate(&self, position: &Coordinate) -> bool {
+        self.is_valid_coordinate(position)
+    }
+}
+
+impl<T, const N: usize, const M: usize> GridMut<T> for SizedGrid<T, N, M> {
+    /// Returns a mutable reference to the row at the specified index.
     ///
     /// # Arguments
     ///
@@ -176,19 +204,6 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
         &mut self.matrix[row]
     }
 
-    /// Returns a reference to the element at the specified position.
-    ///
-    /// # Arguments
-    ///
-    /// * `position` - The position of the element.
-    ///
-    /// # Returns
-    ///
-    /// An `Option` containing a reference to the element, or `None` if the position is invalid.
-    fn get(&self, position: Coordinate) -> Option<&T> {
-        self.get(position)
-    }
-
     /// Returns a mutable reference to the element at the specified position.
     ///
     /// # Arguments
@@ -198,21 +213,8 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
     /// # Returns
     ///
     /// An `Option` containing a mutable reference to the element, or `None` if the position is invalid.
-    fn get_mut(&mut self, position: Coordinate) -> Option<&mut T> {
+    fn get_mut(&mut self, position: &Coordinate) -> Option<&mut T> {
         self.get_mut(position)
-    }
-
-    /// Checks if the specified position is valid within the grid.
-    ///
-    /// # Arguments
-    ///
-    /// * `position` - The position to check.
-    ///
-    /// # Returns
-    ///
-    /// `true` if the position is valid, `false` otherwise.
-    fn is_valid_position(&self, position: Coordinate) -> bool {
-        self.is_valid_position(position)
     }
 }
 
