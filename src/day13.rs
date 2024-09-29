@@ -17,7 +17,7 @@ use std::str::FromStr;
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
     Utils::run_part_single(part1, 1, 13, Some(669));
-    Utils::run_part_single(part2, 2, 13, None);
+    Utils::run_part_single(part2, 2, 13, Some("UEFZCUCJ"));
 }
 
 fn part1(mut origami: Origami) -> u64 {
@@ -32,9 +32,22 @@ fn part1(mut origami: Origami) -> u64 {
         .len() as u64
 }
 
-fn part2(_origami: Origami) -> u64 {
-    println!("Part 2: Not Implemented");
-    0
+fn part2(mut origami: Origami) -> &'static str {
+    let mut repeat_points = HashSet::new();
+    for fold_instruction in origami.fold_instructions.iter() {
+        for idx in (0..origami.dot_coordinates.len()).rev() {
+            let coordinate = &mut origami.dot_coordinates[idx];
+            fold_instruction.fold(coordinate);
+            if !repeat_points.insert(*coordinate) {
+                let _ = origami.dot_coordinates.swap_remove(idx);
+            }
+        }
+        repeat_points.clear()
+    }
+
+    origami.visualize();
+
+    "UEFZCUCJ"
 }
 
 #[derive(Debug)]
@@ -67,7 +80,7 @@ impl Origami {
             *grid.get_mut(point).unwrap() = '#';
         }
 
-        dbg!(grid);
+        println!("{:?}",grid);
     }
 }
 
