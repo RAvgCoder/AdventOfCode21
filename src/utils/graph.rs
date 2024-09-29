@@ -62,7 +62,7 @@ pub struct Graph<N, E> {
 /// This struct is a transparent wrapper around a `usize` and is used to uniquely
 /// identify nodes within the graph.
 #[repr(transparent)]
-#[derive(Debug, Clone,  PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct NodePtr {
     idx: usize,
 }
