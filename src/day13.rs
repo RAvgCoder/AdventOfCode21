@@ -75,7 +75,7 @@ impl Origami {
             .iter()
             .fold((0, 0), |(x, y), point| (x.max(point.i), y.max(point.j)));
 
-        let mut grid = UnsizedGrid::new_with_size(max_x as usize + 1, max_y as usize + 1, '.');
+        let mut grid = UnsizedGrid::new_with_size(max_x as usize + 1, max_y as usize + 1, ' ');
         for point in &transposed_points {
             *grid.get_mut(point).unwrap() = '#';
         }
