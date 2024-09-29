@@ -1,6 +1,6 @@
 use crate::utils::coordinate_system::Coordinate;
 
-mod grid_view;
+mod grid_slice;
 pub mod sized_grid;
 pub mod unsized_grid;
 
