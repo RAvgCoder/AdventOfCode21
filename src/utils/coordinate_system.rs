@@ -1,6 +1,8 @@
+use std::fmt;
 use std::ops::{Add, AddAssign};
+use std::str::FromStr;
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Clone, Copy, Hash, PartialEq, Eq, Default)]
 pub struct Coordinate {
     pub i: i32,
     pub j: i32,
@@ -59,6 +61,47 @@ impl Add<direction::FullDirection> for Coordinate {
         Self {
             i: self.i + dx,
             j: self.j + dy,
+        }
+    }
+}
+
+impl fmt::Debug for Coordinate {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Coordinate({}, {})", self.i, self.j)
+    }
+}
+
+/// Implements the `FromStr` trait for the `Coordinate` struct, allowing it to be created from a string representation.
+///
+/// # Type
+/// * `Err` - The error type returned if parsing fails. In this case, it is a `String`.
+///
+/// # Arguments
+/// * `line` - A string slice that holds the string representation of the coordinate in the format "x,y".
+///
+/// # Returns
+/// * `Result<Self, Self::Err>` - Returns `Ok(Self)` if parsing is successful, otherwise returns an `Err` with a descriptive error message.
+///
+/// # Errors
+/// This function will return an error if:
+/// * The input string does not contain a comma.
+/// * The x or y values cannot be parsed as integers.
+/// * The input string is not in the format "x,y".
+impl FromStr for Coordinate {
+    type Err = String;
+
+    fn from_str(line: &str) -> Result<Self, Self::Err> {
+        match line.split_once(',') {
+            None => Err(format!("Invalid coordinate {}. Format is 'x,y'", line)),
+            Some((i, j)) => {
+                let x = i.parse().map_err(|err: std::num::ParseIntError| {
+                    format!("Cannot parse i axis: {}", err)
+                })?;
+                let y = j.parse().map_err(|err: std::num::ParseIntError| {
+                    format!("Cannot parse j axis: {}", err)
+                })?;
+                Ok(Self::new(x, y))
+            }
         }
     }
 }
