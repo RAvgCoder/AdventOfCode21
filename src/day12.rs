@@ -12,8 +12,8 @@ use std::fmt::{Debug, Formatter};
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part_single(part1, 1, 12, 4691);
-    Utils::run_part_single(part2, 2, 12, 0);
+    Utils::run_part_single(part1, 1, 12, Some(4691));
+    Utils::run_part_single(part2, 2, 12, None);
 }
 
 fn part1(cave_map: CaveMap) -> u64 {
@@ -32,7 +32,11 @@ fn part2(cave_map: CaveMap) -> u64 {
     0
 }
 
-fn distinct_path_once(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_stack: &mut Vec<NodePtr>) -> u64 {
+fn distinct_path_once(
+    cave_map: &CaveMap,
+    curr_index: &NodePtr,
+    small_caves_stack: &mut Vec<NodePtr>,
+) -> u64 {
     if *curr_index == cave_map.end {
         return 1;
     }
@@ -60,7 +64,13 @@ fn distinct_path_once(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_stac
 }
 
 #[allow(dead_code)]
-fn distinct_path_twice(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_stack: &mut HashSet<NodePtr>, curr_node_to_repeat: &mut Option<(NodePtr, bool)>, path: &mut Vec<Cave>) -> u64 {
+fn distinct_path_twice(
+    cave_map: &CaveMap,
+    curr_index: &NodePtr,
+    small_caves_stack: &mut HashSet<NodePtr>,
+    curr_node_to_repeat: &mut Option<(NodePtr, bool)>,
+    path: &mut Vec<Cave>,
+) -> u64 {
     path.push(cave_map.map.get_node_data(curr_index).clone());
     if *curr_index == cave_map.end {
         // {
@@ -102,11 +112,11 @@ fn distinct_path_twice(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_sta
                 // Check if the current node is the one to repeat
                 if *node == *curr_node_index {
                     // If the small cave was visited twice, skip it
-                    if *is_visited_twice == true {
+                    if *is_visited_twice {
                         // Skip the small cave
                         // TODO: Add it back to the stack when u finally leave the node
                         small_caves_stack.insert(curr_node_index.clone());
-                        continue;   
+                        continue;
                     }
                     // Decrement the repeat count
                     *is_visited_twice = true;
@@ -118,7 +128,13 @@ fn distinct_path_twice(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_sta
             }
         }
 
-        result += distinct_path_twice(cave_map, curr_node_index, small_caves_stack, curr_node_to_repeat, path);
+        result += distinct_path_twice(
+            cave_map,
+            curr_node_index,
+            small_caves_stack,
+            curr_node_to_repeat,
+            path,
+        );
     }
 
     if let Cave::Small(_) = cave_map.map.get_node_data(curr_index) {
@@ -127,7 +143,7 @@ fn distinct_path_twice(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_sta
                 if *is_visited_twice {
                     small_caves_stack.remove(curr_index);
                     *is_visited_twice = false;
-                }else {
+                } else {
                     // Visited once, remove the node from the stack
                     *curr_node_to_repeat = None;
                 }
@@ -139,7 +155,9 @@ fn distinct_path_twice(cave_map: &CaveMap, curr_index: &NodePtr, small_caves_sta
         } else {
             panic!("Small cave not found in stack");
         }
-    } else { path.pop(); }
+    } else {
+        path.pop();
+    }
 
     result
 }
@@ -169,9 +187,15 @@ impl Debug for Cave {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Cave::End => write!(f, "End"),
-            Cave::Start => { write!(f, "Start") }
-            Cave::Big(big) => { write!(f, "Big({})", big) }
-            Cave::Small(small) => { write!(f, "Small({})", small) }
+            Cave::Start => {
+                write!(f, "Start")
+            }
+            Cave::Big(big) => {
+                write!(f, "Big({})", big)
+            }
+            Cave::Small(small) => {
+                write!(f, "Small({})", small)
+            }
         }
     }
 }

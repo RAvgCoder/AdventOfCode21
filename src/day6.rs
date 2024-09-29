@@ -12,8 +12,8 @@ use crate::utils::day_setup;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 6, 396210);
-    Utils::run_part(part2, 2, 6, 1770823541496);
+    Utils::run_part(part1, 1, 6, Some(396210));
+    Utils::run_part(part2, 2, 6, Some(1770823541496));
 }
 
 fn part1(input: Vec<LanternFishList>) -> u64 {

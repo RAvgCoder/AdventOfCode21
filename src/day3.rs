@@ -6,8 +6,8 @@ use crate::utils::day_setup;
 
 pub fn run() {
     // run_part(function, part_num, day_num)
-    Utils::run_part(part1, 1, 3, 1997414);
-    Utils::run_part(part2, 2, 3, 1032597);
+    Utils::run_part(part1, 1, 3, Some(1997414));
+    Utils::run_part(part2, 2, 3, Some(1032597));
 }
 const BIT_SIZE: usize = 12;
 

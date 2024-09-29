@@ -12,8 +12,8 @@ use std::str::FromStr;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 8, 344);
-    Utils::run_part(part2, 2, 8, 1048410);
+    Utils::run_part(part1, 1, 8, Some(344));
+    Utils::run_part(part2, 2, 8, Some(1048410));
 }
 
 fn part1(segment_list: Vec<SignalContext>) -> u64 {

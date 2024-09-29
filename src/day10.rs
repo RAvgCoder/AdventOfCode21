@@ -12,8 +12,8 @@ use crate::utils::day_setup;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 10, 318081);
-    Utils::run_part(part2, 2, 10, 4361305341);
+    Utils::run_part(part1, 1, 10, Some(318081));
+    Utils::run_part(part2, 2, 10, Some(4361305341));
 }
 
 fn part1(program: Vec<NavSubSystem>) -> u64 {

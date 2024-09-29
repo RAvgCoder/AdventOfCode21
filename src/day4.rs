@@ -5,8 +5,8 @@ use crate::utils::day_setup;
 
 pub fn run() {
     // run_part(function, part_num, day_num)
-    Utils::run_part(part1, 1, 4, 35711);
-    Utils::run_part(part2, 2, 4, 5586);
+    Utils::run_part(part1, 1, 4, Some(35711));
+    Utils::run_part(part2, 2, 4, Some(5586));
 }
 
 fn part1(mut input: Vec<String>) -> u64 {

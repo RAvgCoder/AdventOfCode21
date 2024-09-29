@@ -2,8 +2,8 @@ use crate::utils::day_setup;
 
 pub fn run() {
     // run_part(function, part_num, day_num)
-    day_setup::Utils::run_part(part1, 1, 2, 1714680);
-    day_setup::Utils::run_part(part2, 2, 2, 1963088820);
+    day_setup::Utils::run_part(part1, 1, 2, Some(1714680));
+    day_setup::Utils::run_part(part2, 2, 2, Some(1963088820));
 }
 
 fn part1(input: Vec<String>) -> u64 {

@@ -12,8 +12,8 @@ use crate::utils::day_setup;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 7, 356992);
-    Utils::run_part(part2, 2, 7, 101268110);
+    Utils::run_part(part1, 1, 7, Some(356992));
+    Utils::run_part(part2, 2, 7, Some(101268110));
 }
 
 /// Solves part 1 of the puzzle.

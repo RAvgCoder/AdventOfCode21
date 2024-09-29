@@ -14,8 +14,8 @@ use std::fmt::Debug;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part_single(part1, 1, 11, 1729);
-    Utils::run_part_single(part2, 2, 11, 237);
+    Utils::run_part_single(part1, 1, 11, Some(1729));
+    Utils::run_part_single(part2, 2, 11, Some(237));
 }
 const GRID_SIZE: usize = 10;
 fn part1(mut octopus_grid: OctopusGrid) -> u64 {
@@ -62,7 +62,7 @@ impl OctopusGrid {
         while let Some(curr_position) = self.curr_flashes.pop() {
             for dir in FullDirection::full_direction_list() {
                 let new_position = curr_position + dir;
-                if let Some(e) = self.grid.get_mut(new_position) {
+                if let Some(e) = self.grid.get_mut(&new_position) {
                     if *e != EnergyLevel::Flash && e.raise_energy() {
                         self.curr_flashes.push(new_position);
                         self.num_flashes += 1;

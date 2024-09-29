@@ -8,8 +8,8 @@ use crate::utils::day_setup;
 
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 5, 4993);
-    Utils::run_part(part2, 2, 5, 21101);
+    Utils::run_part(part1, 1, 5, Some(4993));
+    Utils::run_part(part2, 2, 5, Some(21101));
 }
 
 /// Part 1 solution: considers only horizontal and vertical lines.
