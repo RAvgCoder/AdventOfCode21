@@ -42,10 +42,10 @@ impl Utils {
             "//------------[Day {} Part {}]------------\\\\",
             day_num, part_num
         );
+        
         let read_file = Self::read_file::<T>(day_num);
-        let start_time = Instant::now();
-        let result = day_func_part_to_run(read_file);
-        let elapsed_time = start_time.elapsed();
+        
+        let (elapsed_time, result) = Self::time_it(move || day_func_part_to_run(read_file));
 
         Self::log_results(expected, result, elapsed_time);
     }
@@ -84,13 +84,32 @@ impl Utils {
             "//------------[Day {} Part {}]------------\\\\",
             day_num, part_num
         );
+        
         let read_file = Self::read_file::<String>(day_num);
-        let final_type = T::from(read_file);
-        let start_time = Instant::now();
-        let result = day_func_part_to_run(final_type);
-        let elapsed_time = start_time.elapsed();
-
+        let (parsing_time, final_type) = Self::time_it(move || T::from(read_file));
+        println!(
+            "Time taken to parse: {:?}",
+            Self::log_elapsed_time(parsing_time)
+        );
+        
+        let (elapsed_time, result) = Self::time_it(move || day_func_part_to_run(final_type));
+        
         Self::log_results(expected, result, elapsed_time);
+        
+        println!(
+            "Total time taken: {:?}",
+            Self::log_elapsed_time(parsing_time + elapsed_time)
+        );
+    }
+
+    fn time_it<R, F>(func: F) -> (Duration, R)
+    where
+        F: FnOnce() -> R,
+    {
+        let start_time = Instant::now();
+        let result = func();
+        let elapsed_time = start_time.elapsed();
+        (elapsed_time, result)
     }
 
     /// Logs the results of a function execution, including the expected result, actual result, and execution time.
@@ -129,16 +148,21 @@ Found: {:?}
                     std::process::exit(1);
                 }
 
-                // Convert to milliseconds and microseconds
-                let millis = elapsed_time.as_millis();
-                let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
-
                 println!(
-                    "Result: {:?}\t| Time Taken: {} milli secs and {} micro secs",
-                    result, millis, micros
+                    "Result: {:?}\t| Time Taken: {}",
+                    result,
+                    Self::log_elapsed_time(elapsed_time)
                 );
             }
         }
+    }
+
+    fn log_elapsed_time(elapsed_time: Duration) -> String {
+        // Convert to milliseconds and microseconds
+        let millis = elapsed_time.as_millis();
+        let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
+
+        format!("{} milli secs and {} micro secs", millis, micros)
     }
 
     /// Reads a file and returns its content as a vector of elements of type `T`.
@@ -157,7 +181,7 @@ Found: {:?}
     fn read_file<T>(day_num: u8) -> Vec<T>
     where
         T: std::str::FromStr,
-        T::Err: std::fmt::Debug,
+        T::Err: Debug,
     {
         let file_path = Self::get_file_path()
             .join("inputs")
@@ -255,7 +279,7 @@ fn part2(input: Vec<String>) -> u64 {{
             Utils::AOC_YEAR,
             day_num
         )
-        .expect("Failed to write to file");
+            .expect("Failed to write to file");
         println!(
             "File successfully created at location: {} & {}",
             src_file_path.display(),
