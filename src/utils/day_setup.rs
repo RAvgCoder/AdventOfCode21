@@ -1,34 +1,42 @@
 use std::env;
+use std::fmt::Debug;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
 use std::path::PathBuf;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 /// Utility struct containing various helper functions.
 pub struct Utils;
 
 impl Utils {
-    const AOC_YEAR: u16 = 21; // 2021
-
     /// Executes a function with a list of data and measures its execution time.
     ///
     /// # Arguments
+    ///
     /// * `day_func_part_to_run` - The function to be executed.
     /// * `part_num` - The part number of the puzzle.
     /// * `day_num` - The day number of the puzzle.
     /// * `expected` - The expected result for assertion.
     ///
     /// # Type Parameters
-    /// * `T` - The type of the elements in the input vector.
-    /// * `F` - The function type that takes a vector of `T` and returns a `u64`.
+    ///
+    /// * `T` - The type of the elements in the input vector. Must implement the `FromStr` trait.
+    /// * `F` - The function type that takes a vector of `T` and returns a result of type `R`.
+    /// * `R` - The type of the result returned by the function. Must implement the `Debug` and `PartialEq` traits.
     ///
     /// # Panics
-    ///  if the expected result does not match the actual result.
-    pub fn run_part<T, F>(day_func_part_to_run: F, part_num: i32, day_num: u8, expected: u64)
-    where
-        F: FnOnce(Vec<T>) -> u64,
+    ///
+    /// This function will panic if the expected result does not match the actual result.
+    pub fn run_part<T, F, R>(
+        day_func_part_to_run: F,
+        part_num: i32,
+        day_num: u8,
+        expected: Option<R>,
+    ) where
+        F: FnOnce(Vec<T>) -> R,
+        R: Debug + PartialEq,
         T: std::str::FromStr,
-        T::Err: std::fmt::Debug,
+        T::Err: Debug,
     {
         println!(
             "//------------[Day {} Part {}]------------\\\\",
@@ -39,48 +47,38 @@ impl Utils {
         let result = day_func_part_to_run(read_file);
         let elapsed_time = start_time.elapsed();
 
-        // The assumption is that no advent of code answer is to ever be zero cuz that'll be boring
-        if expected != 0 && result != expected {
-            println!(
-                r#"
-Assertion Failed
-----------------
-Expected: {}
-Found: {}
-            "#,
-                expected, result
-            );
-            std::process::exit(1);
-        }
-
-        // Convert to milliseconds and microseconds
-        let millis = elapsed_time.as_millis();
-        let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
-
-        println!(
-            "Result: {}\t| Time Taken: {} milli secs and {} micro secs",
-            result, millis, micros
-        );
+        Self::log_results(expected, result, elapsed_time);
     }
+
+    const AOC_YEAR: u16 = 21; // 2021
 
     /// Executes a function with a single input and measures its execution time.
     ///
     /// # Arguments
+    ///
     /// * `day_func_part_to_run` - The function to be executed.
     /// * `part_num` - The part number of the puzzle.
     /// * `day_num` - The day number of the puzzle.
     /// * `expected` - The expected result for assertion.
     ///
     /// # Type Parameters
-    /// * `T` - The type of the input to the function.
-    /// * `F` - The function type that takes an input of type `T` and returns a `u64`.
+    ///
+    /// * `T` - The type of the input to the function. Must implement the `From<Vec<String>>` trait.
+    /// * `F` - The function type that takes an input of type `T` and returns a result of type `R`.
+    /// * `R` - The type of the result returned by the function. Must implement the `Debug` and `PartialEq` traits.
     ///
     /// # Panics
-    /// If the expected result does not match the actual result.
-    pub fn run_part_single<T, F>(day_func_part_to_run: F, part_num: i32, day_num: u8, expected: u64)
-    where
-        F: FnOnce(T) -> u64,
+    ///
+    /// This function will panic if the expected result does not match the actual result.
+    pub fn run_part_single<T, F, R>(
+        day_func_part_to_run: F,
+        part_num: i32,
+        day_num: u8,
+        expected: Option<R>,
+    ) where
+        F: FnOnce(T) -> R,
         T: From<Vec<String>>,
+        R: Debug + PartialEq,
     {
         println!(
             "//------------[Day {} Part {}]------------\\\\",
@@ -92,28 +90,55 @@ Found: {}
         let result = day_func_part_to_run(final_type);
         let elapsed_time = start_time.elapsed();
 
+        Self::log_results(expected, result, elapsed_time);
+    }
+
+    /// Logs the results of a function execution, including the expected result, actual result, and execution time.
+    ///
+    /// # Arguments
+    ///
+    /// * `expected` - The expected result for assertion. If `None`, the result is considered incomplete.
+    /// * `result` - The actual result obtained from the function execution.
+    /// * `elapsed_time` - The duration of time taken to execute the function.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `R` - The type of the result. Must implement the `Debug` and `PartialEq` traits.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the actual result does not match the expected result.
+    fn log_results<R>(expected: Option<R>, result: R, elapsed_time: Duration)
+    where
+        R: Debug + PartialEq,
+    {
         // The assumption is that no advent of code answer is to ever be zero cuz that'll be boring
-        if expected != 0 && result != expected {
-            println!(
-                r#"
+        match expected {
+            None => println!("INCOMPLETE"),
+            Some(expected) => {
+                if result != expected {
+                    println!(
+                        r#"
 Assertion Failed
 ----------------
-Expected: {}
-Found: {}
+Expected: {:?}
+Found: {:?}
             "#,
-                expected, result
-            );
-            std::process::exit(1);
+                        expected, result
+                    );
+                    std::process::exit(1);
+                }
+
+                // Convert to milliseconds and microseconds
+                let millis = elapsed_time.as_millis();
+                let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
+
+                println!(
+                    "Result: {:?}\t| Time Taken: {} milli secs and {} micro secs",
+                    result, millis, micros
+                );
+            }
         }
-
-        // Convert to milliseconds and microseconds
-        let millis = elapsed_time.as_millis();
-        let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
-
-        println!(
-            "Result: {}\t| Time Taken: {} milli secs and {} micro secs",
-            result, millis, micros
-        );
     }
 
     /// Reads a file and returns its content as a vector of elements of type `T`.
@@ -201,8 +226,7 @@ Found: {}
             .unwrap_or_else(|_| panic!("Failed to create file at {}", src_file_path.display()));
         writeln!(
             file,
-            r#"use helper_utils::Utils;
-
+            r#"
 use crate::utils::day_setup::Utils;
 
 /// Runs the Advent of Code puzzles for [Current Day](https://adventofcode.com/20{}/day/{}).
@@ -214,8 +238,8 @@ use crate::utils::day_setup::Utils;
 ///   If the result of any part does not match the expected value.
 pub fn run() {{
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 0, 0);
-    Utils::run_part(part2, 2, 0, 0);
+    Utils::run_part(part1, 1, 0, None);
+    Utils::run_part(part2, 2, 0, None);
 }}
 
 fn part1(input: Vec<String>) -> u64 {{
