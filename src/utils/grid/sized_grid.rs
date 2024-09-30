@@ -188,6 +188,20 @@ impl<T, const N: usize, const M: usize> Grid<T> for SizedGrid<T, N, M> {
     fn is_valid_coordinate(&self, position: &Coordinate) -> bool {
         self.is_valid_coordinate(position)
     }
+
+    /// Returns an iterator over the elements of the grid.
+    ///
+    /// # Type Parameters
+    /// * `'a` - The lifetime of the references to the grid and its elements.
+    ///
+    /// # Returns
+    /// A `GridIter` that iterates over the elements of the grid.
+    fn iter<'a>(&'a self) -> GridIter<'a, Self, T>
+    where
+        T: 'a,
+    {
+        GridIter::new(self)
+    }
 }
 
 impl<T, const N: usize, const M: usize> GridMut<T> for SizedGrid<T, N, M> {

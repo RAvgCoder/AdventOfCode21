@@ -22,6 +22,7 @@ impl<T> UnsizedGrid<T> {
     /// # Returns
     ///
     /// A `GridIter` over the grid.
+    #[allow(dead_code)]
     pub fn iter(&self) -> GridIter<'_, Self, T> {
         GridIter::new(self)
     }
@@ -185,7 +186,7 @@ impl<T: Debug> Debug for UnsizedGrid<T> {
         writeln!(f, "UnsizedGrid: {{")?;
         for row in self.matrix.iter() {
             for cell in row.iter() {
-                write!(f, "{:?} ", cell)?;
+                write!(f, "{:?}    ", cell)?;
             }
             writeln!(f)?;
         }
@@ -242,6 +243,20 @@ impl<T> Grid<T> for UnsizedGrid<T> {
     /// `true` if the coordinate is valid, `false` otherwise.
     fn is_valid_coordinate(&self, coordinate: &Coordinate) -> bool {
         self.is_valid_coordinate(coordinate)
+    }
+
+    /// Returns an iterator over the elements of the grid.
+    ///
+    /// # Type Parameters
+    /// * `'a` - The lifetime of the references to the grid and its elements.
+    ///
+    /// # Returns
+    /// A `GridIter` that iterates over the elements of the grid.
+    fn iter<'a>(&'a self) -> GridIter<'a, Self, T>
+    where
+        T: 'a,
+    {
+        GridIter::new(self)
     }
 }
 
