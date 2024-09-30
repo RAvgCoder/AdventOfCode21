@@ -1,6 +1,5 @@
 use crate::utils::day_setup::Utils;
 use std::collections::HashMap;
-use std::fmt::Debug;
 use std::slice::Iter;
 
 /// Runs the Advent of Code puzzles for [Current Day](https://adventofcode.com/2021/day/14).
