@@ -133,7 +133,7 @@ impl Utils {
     {
         // The assumption is that no advent of code answer is to ever be zero cuz that'll be boring
         match expected {
-            None => println!("INCOMPLETE"),
+            None => println!("INCOMPLETE | Temp Result: {:?}", result),
             Some(expected) => {
                 if result != expected {
                     println!(
