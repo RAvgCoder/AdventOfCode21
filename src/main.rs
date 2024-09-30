@@ -35,9 +35,6 @@ const DAYS_COMPLETED: [fn(); 15] = [
 
 fn main() {
     // utils::day_setup::Utils::new_day(15);
-    // DAYS_COMPLETED.iter().for_each(|day| {
-    //     day();
-    //     println!()
-    // });
+    // DAYS_COMPLETED.iter().for_each(|day| { day(); println!() });
     DAYS_COMPLETED.last().unwrap()();
 }
