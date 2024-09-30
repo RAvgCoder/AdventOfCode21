@@ -44,7 +44,8 @@ fn simulate<const COUNT: u8>(polymer_formula: &mut PolymerFormula) {
             if let Some(new) =
                 PolymerFormula::get_replacement(&polymer_formula.insertion_rules, (*a, *b))
             {
-                polymer_formula.polymer_template.element_count[(new as u8 - b'A') as usize] += count;
+                polymer_formula.polymer_template.element_count[(new as u8 - b'A') as usize] +=
+                    count;
                 points_to_remove.push((*a, *b));
                 new_points.push(([(*a, new), (new, *b)], *count));
             }

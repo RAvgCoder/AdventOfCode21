@@ -91,6 +91,8 @@ impl<T> UnsizedGrid<T> {
     /// A new `UnsizedGrid` instance.
     #[allow(dead_code)]
     pub fn from_box(grid: Box<[Box<[T]>]>) -> Self {
+        assert!(grid.len() > 0);
+        assert!(grid[0].len() > 0);
         Self { matrix: grid }
     }
 
