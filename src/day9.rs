@@ -1,8 +1,8 @@
 use crate::utils::coordinate_system::direction::Direction;
 use crate::utils::coordinate_system::Coordinate;
 use crate::utils::day_setup;
-use crate::utils::grid::iterators::GridIter;
 use crate::utils::grid::unsized_grid::UnsizedGrid;
+use crate::utils::grid::Grid;
 use day_setup::Utils;
 use std::collections::{HashSet, VecDeque};
 use std::fmt::Debug;
@@ -28,7 +28,11 @@ pub fn run() {
 /// # Returns
 /// The sum of the risk levels of all the smallest points.
 fn part1(height_map: HeightMap) -> u64 {
-    find_smallest_points(&height_map, |_, e, sum| *sum += e as u64 + 1)
+    height_map.grid.foreach(|pos, e: &u8, sum: &mut u64| {
+        if height_map.is_lowest_point(pos) {
+            *sum += *e as u64 + 1
+        }
+    })
 }
 
 /// Part 2 of the puzzle, which finds the largest basins in the height map.
@@ -39,67 +43,41 @@ fn part1(height_map: HeightMap) -> u64 {
 /// # Returns
 /// The product of the sizes of the three largest basins.
 fn part2(height_map: HeightMap) -> u64 {
-    find_smallest_points(&height_map, |pos, _, acc: &mut [u64; 3]| {
-        let mut queue = VecDeque::new();
-        let mut has_visited = HashSet::new();
-        queue.push_back(pos);
+    height_map
+        .grid
+        .foreach(|pos, _, acc: &mut [u64; 3]| {
+            if height_map.is_lowest_point(pos) {
+                let mut queue = VecDeque::new();
+                let mut has_visited = HashSet::new();
+                queue.push_back(pos);
 
-        while let Some(pos) = queue.pop_front() {
-            if !has_visited.insert(pos) {
-                continue;
-            }
-            has_visited.insert(pos);
-            for dir in Direction::direction_list() {
-                let position = pos + dir;
-                if let Some(&new_height) = height_map.get(&position) {
-                    if new_height < HeightMap::HIGHEST_POINT {
-                        queue.push_back(position);
+                while let Some(pos) = queue.pop_front() {
+                    if !has_visited.insert(pos) {
+                        continue;
+                    }
+                    has_visited.insert(pos);
+                    for dir in Direction::direction_list() {
+                        let position = pos + dir;
+                        if let Some(&new_height) = height_map.get(&position) {
+                            if new_height < HeightMap::HIGHEST_POINT {
+                                queue.push_back(position);
+                            }
+                        }
                     }
                 }
+
+                if let Some(min) = acc.iter_mut().min() {
+                    let new_val = has_visited.len() as u64;
+                    if *min < new_val {
+                        *min = new_val;
+                    }
+                } else {
+                    panic!("Could not find min value")
+                }
             }
-        }
-
-        if let Some(min) = acc.iter_mut().min() {
-            let new_val = has_visited.len() as u64;
-            if *min < new_val {
-                *min = new_val;
-            }
-        } else {
-            panic!("Could not find min value")
-        }
-    })
-    .iter()
-    .product::<u64>()
-}
-
-/// Finds the smallest points in the height map using a provided function.
-///
-/// # Arguments
-/// * `height_map` - A reference to the `HeightMap` containing the height data.
-/// * `smallest_point_func` - A function that processes each smallest point found.
-///
-/// # Type Parameters
-/// * `F` - The type of the function that processes each smallest point.
-/// * `T` - The type of the result accumulated by the function.
-///
-/// # Returns
-/// The result accumulated by the `smallest_point_func`.
-fn find_smallest_points<F, T>(height_map: &HeightMap, smallest_point_func: F) -> T
-where
-    F: Fn(Coordinate, u8, &mut T),
-    T: Default,
-{
-    let mut result: T = Default::default();
-
-    for row in height_map.iter() {
-        for (pos, e) in row {
-            if height_map.is_lowest_point(pos) {
-                smallest_point_func(pos, *e, &mut result)
-            }
-        }
-    }
-
-    result
+        })
+        .iter()
+        .product::<u64>()
 }
 
 /// Represents a height map for the puzzle.
@@ -121,14 +99,6 @@ impl HeightMap {
     #[inline(always)]
     fn get(&self, position: &Coordinate) -> Option<&u8> {
         self.grid.get(position)
-    }
-
-    /// Returns an iterator over the height map.
-    ///
-    /// # Returns
-    /// An iterator over the height map.
-    fn iter(&self) -> GridIter<UnsizedGrid<u8>, u8> {
-        self.grid.iter()
     }
 
     /// Checks if a position is the lowest point in its neighborhood.
