@@ -24,7 +24,7 @@ pub trait Grid<T> {
 
     /// Checks if the specified coordinate is valid within the grid.
     fn is_valid_coordinate(&self, coordinate: &Coordinate) -> bool;
-
+    
     /// Returns an iterator over the elements of the grid.
     ///
     /// # Type Parameters
@@ -36,6 +36,14 @@ pub trait Grid<T> {
     where
         T: 'a,
         Self: Sized;
+
+    /// Returns the coordinate of the last element in the grid.
+    ///
+    /// # Returns
+    /// A `Coordinate` representing the position of the last element in the grid.
+    fn last_coordinate(&self) -> Coordinate {
+        Coordinate::new((self.num_rows() - 1) as i32, (self.num_cols() - 1) as i32)
+    }
 
     /// Applies a function to each element in the grid.
     ///
