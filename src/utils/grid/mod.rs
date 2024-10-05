@@ -24,7 +24,7 @@ pub trait Grid<T> {
 
     /// Checks if the specified coordinate is valid within the grid.
     fn is_valid_coordinate(&self, coordinate: &Coordinate) -> bool;
-    
+
     /// Returns an iterator over the elements of the grid.
     ///
     /// # Type Parameters

@@ -27,6 +27,42 @@ impl<T> UnsizedGrid<T> {
         GridIter::new(self)
     }
 
+    /// Creates an iterator over the grid which allows mutation of `T`.
+    ///
+    /// # Returns
+    ///
+    /// A `GridIter` over the grid.
+    #[allow(dead_code)]
+    pub fn iter_mut(&mut self) -> GridIterMut<'_, T> {
+        GridIterMut::new(self)
+    }
+
+    /// Creates a new `UnsizedGrid` with the specified number of rows and columns,
+    /// initializing all elements to the provided default value.
+    ///
+    /// # Arguments
+    ///
+    /// * `rows` - The number of rows in the grid.
+    /// * `cols` - The number of columns in the grid.
+    /// * `default` - The default value to initialize each element in the grid.
+    ///
+    /// # Type Parameters
+    ///
+    /// * `T` - The type of elements stored in the grid. Must implement the `Clone` trait.
+    ///
+    /// # Returns
+    ///
+    /// A new `UnsizedGrid` instance with the specified dimensions and default values.
+    #[inline]
+    pub fn new_with_size(rows: usize, cols: usize, default: T) -> Self
+    where
+        T: Clone,
+    {
+        // Create a single row filled with the default value, to avoid multiple clones
+        // Clone the row for each additional row needed
+        Self::new(vec![vec![default; cols]; rows])
+    }
+
     /// Creates a new `UnsizedGrid` from a 2D vector.
     ///
     /// # Arguments
@@ -48,37 +84,6 @@ impl<T> UnsizedGrid<T> {
         assert!(grid[0].len() > 0);
 
         Self { matrix: grid }
-    }
-
-    /// Creates a new `UnsizedGrid` with the specified number of rows and columns,
-    /// initializing all elements to the provided default value.
-    ///
-    /// # Arguments
-    ///
-    /// * `rows` - The number of rows in the grid.
-    /// * `cols` - The number of columns in the grid.
-    /// * `default` - The default value to initialize each element in the grid.
-    ///
-    /// # Type Parameters
-    ///
-    /// * `T` - The type of elements stored in the grid. Must implement the `Clone` trait.
-    ///
-    /// # Returns
-    ///
-    /// A new `UnsizedGrid` instance with the specified dimensions and default values.
-    pub fn new_with_size(rows: usize, cols: usize, default: T) -> Self
-    where
-        T: Clone,
-    {
-        let mut grid = Vec::with_capacity(rows);
-        for _ in 0..rows {
-            let mut row = Vec::with_capacity(cols);
-            for _ in 0..cols {
-                row.push(default.clone());
-            }
-            grid.push(row);
-        }
-        Self::new(grid)
     }
 
     /// Creates a new `UnsizedGrid` from a boxed 2D slice.
@@ -145,7 +150,7 @@ impl<T> UnsizedGrid<T> {
     ///
     /// An `Option` containing a mutable reference to the element, or `None` if the coordinate is invalid.
     #[allow(dead_code)]
-    #[inline(always)]
+    #[inline]
     pub fn get_mut(&mut self, coordinate: &Coordinate) -> Option<&mut T> {
         if self.is_valid_coordinate(coordinate) {
             Some(&mut self.matrix[coordinate.i as usize][coordinate.j as usize])
@@ -163,7 +168,7 @@ impl<T> UnsizedGrid<T> {
     /// # Returns
     ///
     /// `true` if the coordinate is valid, `false` otherwise.
-    #[inline(always)]
+    #[inline]
     pub fn is_valid_coordinate(&self, coordinate: &Coordinate) -> bool {
         coordinate.i >= 0
             && coordinate.j >= 0
