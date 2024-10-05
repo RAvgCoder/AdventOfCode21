@@ -2,7 +2,7 @@ use std::fmt;
 use std::ops::{Add, AddAssign};
 use std::str::FromStr;
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq, Default)]
+#[derive(Default, Clone, Copy, Eq, Ord, PartialEq, PartialOrd, Hash)]
 pub struct Coordinate {
     pub i: i32,
     pub j: i32,
