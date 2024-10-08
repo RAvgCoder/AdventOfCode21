@@ -10,7 +10,7 @@ use std::ops::RangeInclusive;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 16, None);
+    Utils::run_part(part1, 1, 16, Some(977));
     Utils::run_part(part2, 2, 0, None);
 }
 
@@ -42,16 +42,13 @@ impl<'a> Packet<'a> {
     const VERSION_NUMBER: RangeInclusive<usize> = 0..=2;
     const TYPE_ID_RANGE: RangeInclusive<usize> = 3..=5;
 
-    fn decode_version_number(&self) -> PacketResult {
-        Self::decode(self.bits)
-    }
-
     ///110100101111111000101000
     /// VVVTTTAAAAABBBBBCCCCC
     /// 
     /// 001 110 0 000000000011011 11010001010 0101001000100100 0000000
     /// VVV TTT I LLLLLLLLLLLLLLL AAAAAAAAAAA BBBBBBBBBBBBBBBB
-    fn decode(bits: &str) -> PacketResult {
+    fn decode_version_number(&self) -> PacketResult<'a> {
+        let bits = self.bits;
         assert!(bits.len() >= 6, "Bits too short: {}", bits);
         let version_number = Self::binary_str_to_int(&bits[Self::VERSION_NUMBER]);
         let type_id = Self::binary_str_to_int(&bits[Self::TYPE_ID_RANGE]);
@@ -71,7 +68,7 @@ impl<'a> Packet<'a> {
             let mut new_bits = &bits[..sub_packet_length as usize];
 
             while !new_bits.is_empty() {
-                let (v_num, rest) = Self::decode(new_bits);
+                let (v_num, rest) = Packet { bits: new_bits }.decode_version_number();
                 println!("0: {:?}", v_num);
                 new_bits = rest;
                 acc_version_number += v_num;
@@ -87,13 +84,10 @@ impl<'a> Packet<'a> {
             let mut acc_version_number = version_number;
 
             for _ in 0..sub_packet_length {
-                let (v_num, rest) = Self::decode(bits);
+                let (v_num, rest) = Packet { bits }.decode_version_number();
                 println!("1: {:?}", v_num);
                 acc_version_number += v_num;
                 bits = rest;
-                // if bits.is_empty() {
-                //     break;
-                // }
             }
 
             (acc_version_number, bits)
