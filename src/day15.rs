@@ -23,7 +23,6 @@ pub fn run() {
 type Risk = u8; // Type representing the risk value of a position
 type MinRisk = u16; // Type representing the minimum risk encountered to reach a position
 
-
 // Function for part 1, calculating the lowest risk path
 fn part1(mut risk_map: RiskMap) -> MinRisk {
     risk_map.lowest_risk() // Calls the method to calculate the lowest risk
@@ -37,7 +36,7 @@ fn part2(risk_map: RiskMap) -> MinRisk {
 // Struct representing the risk map, which contains the grid and the end coordinate
 struct RiskMap {
     grid: UnsizedGrid<(Risk, MinRisk)>, // The grid storing risk values and minimum risk values
-    end_coord: Coordinate, // The end coordinate for the pathfinding
+    end_coord: Coordinate,              // The end coordinate for the pathfinding
 }
 
 impl RiskMap {
