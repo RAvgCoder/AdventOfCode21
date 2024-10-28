@@ -14,33 +14,37 @@ use std::str::FromStr;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    Utils::run_part(part1, 1, 0, None);
-    Utils::run_part(part2, 2, 0, None);
+    Utils::run_part(part1, 1, 18, Some(3051));
+    Utils::run_part(part2, 2, 18, Some(4812));
 }
 
 fn part1(mut input: Vec<SnailFish>) -> u64 {
-
-    let mut input1 = "[[[[4,0],[5,4]],[[7,7],[6,0]]],[[[6,6],[5,5]],[[5,[[5,5],0]],[5,6]]]]"
-        .parse::<SnailFish>().unwrap();
-    input1.explode();
-    
-    // let first = input.remove(0);
-    // input
-    //     .into_iter()
-    //     .enumerate()
-    //     .fold(first, |mut acc_snail_fish, (idx, snail_fish)| {
-    //         acc_snail_fish += snail_fish;
-    //         println!("\n\nCalc {idx}  | Res: {:?}\n\n", acc_snail_fish);
-    //         acc_snail_fish
-    //     })
-    //     .magnitude();
-
-    0
+    let first = input.remove(0);
+    input
+        .into_iter()
+        .fold(first, |mut acc_snail_fish, snail_fish| {
+            acc_snail_fish += snail_fish;
+            acc_snail_fish
+        })
+        .magnitude()
 }
 
 fn part2(input: Vec<SnailFish>) -> u64 {
-    input.iter().for_each(|e| println!("{:?}\n", e));
-    0
+    let mut max_magnitude = 0;
+    for i in 0..input.len() {
+        for j in 0..input.len() {
+            if i != j {
+                let mut lhs = input[i].clone();
+                lhs += input[j].clone();
+
+                let mut rhs = input[j].clone();
+                rhs += input[i].clone();
+
+                max_magnitude = max_magnitude.max(lhs.magnitude().max(rhs.magnitude()));
+            }
+        }
+    }
+    max_magnitude
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
@@ -53,6 +57,14 @@ enum SnailToken {
 #[derive(Eq)]
 struct SnailFish {
     tokens: Vec<SnailToken>,
+}
+
+impl Clone for SnailFish {
+    fn clone(&self) -> Self {
+        Self {
+            tokens: self.tokens.clone(),
+        }
+    }
 }
 
 impl SnailFish {
@@ -80,110 +92,72 @@ impl SnailFish {
     }
 
     fn explode(&mut self) {
-        println!("Exploding: {:?}", self);
-        fn remove_snail_fish(tokens: &mut Vec<SnailToken>, i: usize) {
-            println!("{:?}", tokens[i - 1..i + 3].to_vec());
-            tokens.remove(i); // Num1
-            tokens.remove(i); // Num2
-            tokens.remove(i); // ]
-            *tokens.get_mut(i - 1).unwrap() = SnailToken::Number(0); // replace [ with 0
+        fn replace_pair(tokens: &mut Vec<SnailToken>, index: usize) -> (SnailToken, SnailToken) {
+            assert_eq!(tokens[index], SnailToken::OpenParen);
+            *tokens.get_mut(index).unwrap() = SnailToken::Number(0); // replace [ with 0
+            let num1 = tokens.remove(index + 1); // Num1
+            assert!(matches!(num1, SnailToken::Number(_)));
+            let num2 = tokens.remove(index + 1); // Num2
+            assert!(matches!(num2, SnailToken::Number(_)));
+            assert_eq!(tokens.remove(index + 1), SnailToken::CloseParen); // ]
+
+            (num1, num2)
         }
 
-        let mut depth = 0_u8;
-        let mut index = 0;
-        let mut exploded = false;
-        while index < self.tokens.len() {
-            match self.tokens[index] {
-                SnailToken::OpenParen => depth += 1,
-                SnailToken::CloseParen => depth -= 1,
-                SnailToken::Number(first_pair) if depth >= 5 => {
-                    // Find the last number token before the current number token
-                    let _ = self.tokens[..index]
-                        .iter_mut()
-                        .rfind(|tok| matches!(tok, SnailToken::Number(_)))
-                        .map(|num_tok| match num_tok {
-                            SnailToken::Number(num) => *num += first_pair,
-                            _ => unreachable!("Filtered value should only be a number token"),
-                        });
+        loop {
+            let mut exploded = false;
+            let mut depth = 0_u8;
+            let mut index = 0;
 
-                    println!();
-                    println!("{:?}", self.tokens[index - 2]);
-                    println!("{:?}", self.tokens[index - 1]);
-                    println!("{:?}", self.tokens[index]);
-                    println!("{:?}", self.tokens[index + 1]);
-  
-                    let second_pair = match self.tokens[index + 1] {
-                        SnailToken::Number(num) => num,
-                        SnailToken::CloseParen => {
-                            println!(
-                                "\n \
-                            Idx: {}\n \
-                            CurrNum {:?}\n \
-                            First Pair: {:?}\n \
-                            Second Pair: {:?}",
-                                index,
-                                first_pair,
-                                &self.tokens[..index],
-                                &self.tokens[index..]
-                            );
-                            debug_assert!(
-                                false,
-                                "Numbers should always come in pairs Saw=SnailToken::CloseParen\n List:{:?}",
-                                self
-                            );
-                            unreachable!("Numbers should always come in pairs")
+            while index < self.tokens.len() {
+                match self.tokens[index] {
+                    SnailToken::OpenParen => {
+                        depth += 1;
+
+                        if depth >= 5 {
+                            let (num1, num2) = replace_pair(&mut self.tokens, index);
+
+                            if let Some(SnailToken::Number(n)) = self.tokens[..index]
+                                .iter_mut()
+                                .rfind(|tok| matches!(tok, SnailToken::Number(_)))
+                            {
+                                *n += match num1 {
+                                    SnailToken::Number(num1) => num1,
+                                    _ => unreachable!("Should never be anything other than a number"),
+                                }
+                            }
+
+                            if let Some(SnailToken::Number(n)) = self.tokens[index + 1..]
+                                .iter_mut()
+                                .find(|tok| matches!(tok, SnailToken::Number(_)))
+                            {
+                                *n += match num2 {
+                                    SnailToken::Number(num2) => num2,
+                                    _ => {
+                                        unreachable!("Should never be anything other than a number")
+                                    }
+                                }
+                            }
+
+                            depth -= 1; // We have remove the current pair so we are no longer at that depth
+                            exploded = true;
                         }
-                        SnailToken::OpenParen => {
-                            panic!("Inner values are found")
-                        }
-                    };
-
-                    // Find the next number token after the current number token
-                    let _ = self.tokens[index + 2..]
-                        .iter_mut()
-                        .find(|tok| matches!(tok, SnailToken::Number(_)))
-                        .map(|num_tok| match num_tok {
-                            SnailToken::Number(num) => *num += second_pair,
-                            _ => unreachable!("Filtered value should only be a number token"),
-                        });
-
-                    remove_snail_fish(&mut self.tokens, index);
-                    println!("+{:?}+", self.tokens[index-1]);
-
-                    // We know that we are now past the removed tokens so we decrement the index
-                    index -= 2;
-                    depth -= 1;
-                    exploded = true;
-
-                    println!("Exploded into: {:?}", self);
+                    }
+                    SnailToken::CloseParen => depth -= 1,
+                    SnailToken::Number(_) => (),
                 }
-                // SnailToken::Number(n) if depth > 5 => {
-                //     debug_assert!(
-                //         false,
-                //         "Cannot have a number outside of a depth of 5 or any depth other than 5\n\
-                //         Saw={} IDX={}\n List:{:?}",
-                //         n, index, self
-                //     );
-                //     unreachable!(
-                //         "Cannot have a number outside of a depth of 5 or any depth other than 5"
-                //     )
-                // }
-                SnailToken::Number(_) => {
-                    /* Do nothing for numbers that are not above critical depth */
-                }
+
+                index += 1;
             }
 
-            index += 1;
-        }
-
-        if exploded && self.split() {
-            self.explode();
+            if !exploded {
+                break;
+            }
         }
     }
 
-    pub fn split(&mut self) -> bool {
+    fn split(&mut self) -> bool {
         let mut index = 0;
-        let mut was_split = false;
         while index < self.tokens.len() {
             if let SnailToken::Number(n) = self.tokens[index] {
                 if n > 9 {
@@ -199,15 +173,20 @@ impl SnailFish {
                     self.tokens.insert(index, SnailToken::Number(first));
                     self.tokens.insert(index, SnailToken::OpenParen);
 
-                    was_split = true;
+                    return true;
                 }
             }
 
             index += 1;
         }
 
-        println!("Split into: {:?}", self);
-        was_split
+        false
+    }
+
+    fn merge(&mut self, other: Self) {
+        self.tokens.insert(0, SnailToken::OpenParen);
+        self.tokens.extend(other.tokens);
+        self.tokens.push(SnailToken::CloseParen);
     }
 }
 
@@ -227,53 +206,60 @@ impl PartialEq for SnailFish {
 
 impl AddAssign for SnailFish {
     fn add_assign(&mut self, rhs: Self) {
-        self.tokens.insert(0, SnailToken::OpenParen);
-        self.tokens.extend(rhs.tokens);
-        self.tokens.push(SnailToken::CloseParen);
-        self.explode();
+        self.merge(rhs);
+        loop {
+            self.explode();
+            if !self.split() {
+                break;
+            }
+        }
     }
 }
 
 impl fmt::Debug for SnailFish {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut iter = self.tokens.iter().peekable();
+        let mut i = 0;
         while let Some(tok) = iter.next() {
             match tok {
-                SnailToken::OpenParen => write!(f, "[")?,
-                SnailToken::CloseParen => match iter.peek() {
-                    Some(SnailToken::Number(n)) => {
-                        write!(f, "],{}", n)?;
-                        iter.next();
-                    }
-                    Some(SnailToken::OpenParen) => {
-                        write!(f, "],[")?;
-                        iter.next();
-                    }
-                    _ => write!(f, "]")?,
-                },
-                SnailToken::Number(n) => {
+                SnailToken::OpenParen => {
+                    i += 1;
+                    write!(f, "[")?
+                }
+                SnailToken::CloseParen => {
+                    i -= 1;
                     match iter.peek() {
-                        Some(SnailToken::Number(n2)) => {
-                            write!(f, "{},{}", n, n2)?;
+                        Some(SnailToken::Number(n)) => {
+                            write!(f, "],{}", n)?;
                             iter.next();
                         }
                         Some(SnailToken::OpenParen) => {
-                            write!(f, "{},[", n)?;
+                            write!(f, "],[")?;
+                            i += 1;
                             iter.next();
                         }
-                        None => {
-                            debug_assert!(
-                                false,
-                                "Cannot end list with a number: {:?}",
-                                self.tokens
-                            );
-                            unreachable!("Numbers should never end the list")
-                        }
-                        _ => write!(f, "{}", n)?,
-                    };
+                        _ => write!(f, "]")?,
+                    }
                 }
+                SnailToken::Number(n) => match iter.peek() {
+                    Some(SnailToken::Number(n2)) => {
+                        write!(f, "{},{}", n, n2)?;
+                        iter.next();
+                    }
+                    Some(SnailToken::OpenParen) => {
+                        write!(f, "{},[", n)?;
+                        i += 1;
+                        iter.next();
+                    }
+                    None => {
+                        debug_assert!(false, "Cannot end list with a number: {:?}", self.tokens);
+                        unreachable!("Numbers should never end the list")
+                    }
+                    _ => write!(f, "{}", n)?,
+                },
             }
         }
+        assert_eq!(i, 0);
         Ok(())
     }
 }
@@ -350,31 +336,27 @@ mod snail_fish_tests {
 
     #[test]
     fn test_snail_fish_split() {
-        [(
-            "[[[[0,7],4],[15,[0,13]]],[1,1]]",
-            "[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]",
-        )]
-        .map(|(i, e)| {
+        [
             (
-                i.parse::<SnailFish>().unwrap(),
-                e.parse::<SnailFish>().unwrap(),
-            )
-        })
-        .into_iter()
-        .for_each(|(mut input, expected)| {
-            input.split();
-            assert_eq!(input, expected, "Failed to split SnailFish");
-        })
-    }
-
-    #[test]
-    fn test_snail_fish_split_multiple() {
-        let mut input = "[20,1]".parse::<SnailFish>().unwrap();
-
-        let expected = "[[[5,5],[5,5]],1]".parse::<SnailFish>().unwrap();
-
-        input.split();
-        assert_eq!(input, expected, "Failed to split SnailFish");
+                "[[[[0,7],4],[15,[0,13]]],[1,1]]",
+                "[[[[0,7],4],[[7,8],[0,13]]],[1,1]]",
+            ),
+            (
+                "[[[[0,7],4],[[7,8],[0,13]]],[1,1]]",
+                "[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]",
+            ),
+        ]
+            .map(|(i, e)| {
+                (
+                    i.parse::<SnailFish>().unwrap(),
+                    e.parse::<SnailFish>().unwrap(),
+                )
+            })
+            .into_iter()
+            .for_each(|(mut input, expected)| {
+                input.split();
+                assert_eq!(input, expected, "Failed to split SnailFish");
+            })
     }
 
     #[test]
@@ -391,37 +373,22 @@ mod snail_fish_tests {
                 "[[3,[2,[8,0]]],[9,[5,[4,[3,2]]]]]",
                 "[[3,[2,[8,0]]],[9,[5,[7,0]]]]",
             ),
+            (
+                "[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]]",
+                "[[[[0,7],4],[15,[0,13]]],[1,1]]",
+            ),
         ]
-        .map(|(input, expected)| {
-            (
-                input.parse::<SnailFish>().unwrap(),
-                expected.parse::<SnailFish>().unwrap(),
-            )
-        })
-        .into_iter()
-        .for_each(|(mut input, expected)| {
-            input.explode();
-            assert_eq!(input, expected, "Failed to explode SnailFish");
-        });
-    }
-
-    #[test]
-    fn test_explode_split_combo() {
-        [(
-            "[[[[[4,3],4],4],[7,[[8,4],9]]],[1,1]]",
-            "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]",
-        )]
-        .map(|(i, e)| {
-            (
-                i.parse::<SnailFish>().unwrap(),
-                e.parse::<SnailFish>().unwrap(),
-            )
-        })
-        .into_iter()
-        .for_each(|(mut input, expected)| {
-            input.explode();
-            assert_eq!(input, expected, "Failed to explode SnailFish");
-        });
+            .map(|(input, expected)| {
+                (
+                    input.parse::<SnailFish>().unwrap(),
+                    expected.parse::<SnailFish>().unwrap(),
+                )
+            })
+            .into_iter()
+            .for_each(|(mut input, expected)| {
+                input.explode();
+                assert_eq!(input, expected, "Failed to explode SnailFish");
+            });
     }
 
     #[test]
@@ -441,25 +408,11 @@ mod snail_fish_tests {
                 4140,
             ),
         ]
-        .map(|(input, expected)| (input.parse::<SnailFish>().unwrap(), expected))
-        .into_iter()
-        .for_each(|(input, expected)| {
-            assert_eq!(input.magnitude(), expected, "Failed to calculate magnitude");
-        });
-    }
-    
-    #[test]
-    fn test() {
-        let mut input = "[[[[4,0],[5,4]],[[7,7],[6,0]]],[[[6,6],[5,5]],[[10,[0,5]],[5,6]]]]"
-            .parse::<SnailFish>().unwrap();
-        input.explode();
-        println!("1:{:?}", input);
-        println!("{}","~".repeat(50));
-        let mut input = "[[[[4,0],[5,4]],[[7,7],[6,0]]],[[[6,6],[5,5]],[[5,[[5,5],0]],[5,6]]]]"
-            .parse::<SnailFish>().unwrap();
-        input.explode();
-        println!("2:{:?}", input);
-        // assert!(false);
+            .map(|(input, expected)| (input.parse::<SnailFish>().unwrap(), expected))
+            .into_iter()
+            .for_each(|(input, expected)| {
+                assert_eq!(input.magnitude(), expected, "Failed to calculate magnitude");
+            });
     }
 
     #[test]
@@ -480,76 +433,75 @@ mod snail_fish_tests {
             ),
             AddTest(
                 AddInput(
-                    "[[[[4,0],[5,4]],[[7,7],[6,0]]],[[8,[7,7]],[[7,9],[5,0]]]",
+                    "[[[[4,0],[5,4]],[[7,7],[6,0]]],[[8,[7,7]],[[7,9],[5,0]]]]",
                     "[[2,[[0,8],[3,4]]],[[[6,7],1],[7,[1,6]]]]",
                 ),
-                "[[[[6,7],[6,7]],[[7,7],[0,7]]],[[[8,7],[7,7]],[[8,8],[8,0]]]",
+                "[[[[6,7],[6,7]],[[7,7],[0,7]]],[[[8,7],[7,7]],[[8,8],[8,0]]]]",
             ),
             AddTest(
                 AddInput(
-                    "[[[[6,7],[6,7]],[[7,7],[0,7]]],[[[8,7],[7,7]],[[8,8],[8,0]]]",
+                    "[[[[6,7],[6,7]],[[7,7],[0,7]]],[[[8,7],[7,7]],[[8,8],[8,0]]]]",
                     "[[[[2,4],7],[6,[0,5]]],[[[6,8],[2,8]],[[2,1],[4,5]]]]",
                 ),
-                "[[[[7,0],[7,7]],[[7,7],[7,8]]],[[[7,7],[8,8]],[[7,7],[8,7]]]",
+                "[[[[7,0],[7,7]],[[7,7],[7,8]]],[[[7,7],[8,8]],[[7,7],[8,7]]]]",
             ),
             AddTest(
                 AddInput(
-                    "[[[[7,0],[7,7]],[[7,7],[7,8]]],[[[7,7],[8,8]],[[7,7],[8,7]]]",
+                    "[[[[7,0],[7,7]],[[7,7],[7,8]]],[[[7,7],[8,8]],[[7,7],[8,7]]]]",
                     "[7,[5,[[3,8],[1,4]]]]",
                 ),
-                "[[[[7,7],[7,8]],[[9,5],[8,7]]],[[[6,8],[0,8]],[[9,9],[9,0]]]",
+                "[[[[7,7],[7,8]],[[9,5],[8,7]]],[[[6,8],[0,8]],[[9,9],[9,0]]]]",
             ),
             AddTest(
                 AddInput(
-                    "[[[[7,7],[7,8]],[[9,5],[8,7]]],[[[6,8],[0,8]],[[9,9],[9,0]]]",
+                    "[[[[7,7],[7,8]],[[9,5],[8,7]]],[[[6,8],[0,8]],[[9,9],[9,0]]]]",
                     "[[2,[2,2]],[8,[8,1]]]",
                 ),
-                "[[[[6,6],[6,6]],[[6,0],[6,7]]],[[[7,7],[8,9]],[8,[8,1]]]",
+                "[[[[6,6],[6,6]],[[6,0],[6,7]]],[[[7,7],[8,9]],[8,[8,1]]]]",
             ),
             AddTest(
                 AddInput(
-                    "[[[[6,6],[6,6]],[[6,0],[6,7]]],[[[7,7],[8,9]],[8,[8,1]]]",
+                    "[[[[6,6],[6,6]],[[6,0],[6,7]]],[[[7,7],[8,9]],[8,[8,1]]]]",
                     "[2,9]",
                 ),
-                "[[[[6,6],[7,7]],[[0,7],[7,7]]],[[[5,5],[5,6]],9]",
+                "[[[[6,6],[7,7]],[[0,7],[7,7]]],[[[5,5],[5,6]],9]]",
             ),
             AddTest(
                 AddInput(
-                    "[[[[6,6],[7,7]],[[0,7],[7,7]]],[[[5,5],[5,6]],9]",
+                    "[[[[6,6],[7,7]],[[0,7],[7,7]]],[[[5,5],[5,6]],9]]",
                     "[1,[[[9,3],9],[[9,0],[0,7]]]]",
                 ),
-                "[[[[7,8],[6,7]],[[6,8],[0,8]]],[[[7,7],[5,0]],[[5,5],[5,6]]]",
+                "[[[[7,8],[6,7]],[[6,8],[0,8]]],[[[7,7],[5,0]],[[5,5],[5,6]]]]",
             ),
             AddTest(
                 AddInput(
-                    "[[[[7,8],[6,7]],[[6,8],[0,8]]],[[[7,7],[5,0]],[[5,5],[5,6]]]",
+                    "[[[[7,8],[6,7]],[[6,8],[0,8]]],[[[7,7],[5,0]],[[5,5],[5,6]]]]",
                     "[[[5,[7,4]],7],1]",
                 ),
-                "[[[[7,7],[7,7]],[[8,7],[8,7]]],[[[7,0],[7,7]],9]",
+                "[[[[7,7],[7,7]],[[8,7],[8,7]]],[[[7,0],[7,7]],9]]",
             ),
             AddTest(
                 AddInput(
-                    "[[[[7,7],[7,7]],[[8,7],[8,7]]],[[[7,0],[7,7]],9]",
+                    "[[[[7,7],[7,7]],[[8,7],[8,7]]],[[[7,0],[7,7]],9]]",
                     "[[[[4,2],2],6],[8,7]]",
                 ),
-                "[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]",
+                "[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]",
             ),
         ]
-        .map(|AddTest(AddInput(a, b), e)| {
-            (
+            .map(|AddTest(AddInput(a, b), e)| {
                 (
-                    a.parse::<SnailFish>().unwrap(),
-                    b.parse::<SnailFish>().unwrap(),
-                ),
-                e.parse::<SnailFish>().unwrap(),
-            )
-        })
-        .into_iter()
-        .enumerate()
-        .for_each(|(idx, ((mut a, b), expected))| {
-            println!("Test: {}\n\n", idx);
-            a += b;
-            assert_eq!(a, expected, "Failed to add SnailFish for test {}", idx);
-        });
+                    (
+                        a.parse::<SnailFish>().unwrap(),
+                        b.parse::<SnailFish>().unwrap(),
+                    ),
+                    e.parse::<SnailFish>().unwrap(),
+                )
+            })
+            .into_iter()
+            .enumerate()
+            .for_each(|(idx, ((mut a, b), expected))| {
+                a += b;
+                assert_eq!(a, expected, "Failed to add SnailFish for test {}", idx);
+            });
     }
 }
