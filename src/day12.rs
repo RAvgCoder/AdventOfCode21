@@ -1,5 +1,5 @@
 use crate::utils::day_setup::Utils;
-use crate::utils::graph::{Graph, Neighbours, NodePtr};
+use crate::utils::graph::{Graph, Neighbours, NodePtr, Relationship};
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
 
@@ -13,23 +13,40 @@ use std::fmt::{Debug, Formatter};
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
     Utils::run_part_single(part1, 1, 12, Some(4691));
-    Utils::run_part_single(part2, 2, 12, None);
+    Utils::run_part_single(part2, 2, 12, Some(140718));
 }
 
 fn part1(cave_map: CaveMap) -> u64 {
-    let mut small_caves_stack: Vec<NodePtr> = Vec::with_capacity(cave_map.map.num_of_nodes());
+    let mut small_caves_stack: Vec<NodePtr> = Vec::with_capacity(cave_map.map.len());
     distinct_path_once(&cave_map, &cave_map.start, &mut small_caves_stack)
 }
 
-#[allow(dead_code)]
-fn part2(cave_map: CaveMap) -> u64 {
-    // println!("{:?}", cave_map.map);
-    let mut _small_caves_stack: HashSet<NodePtr> =
-        HashSet::with_capacity(cave_map.map.num_of_nodes());
-    let mut _curr_node_to_repeat: Option<(NodePtr, bool)> = None;
+fn part2(cave_map: CaveMap) -> usize {
+    let mut small_caves_stack: Vec<NodePtr> = Vec::with_capacity(cave_map.map.len());
+    let mut path_storage = PathsBuilder::new();
 
-    // distinct_path_twice(&cave_map, &cave_map.start, &mut small_caves_stack, &mut curr_node_to_repeat, &mut Vec::new())
-    0
+    cave_map
+        .get_nodes()
+        .iter()
+        .filter(|node| {
+            !matches!(node, Cave::Start)
+                & !matches!(node, Cave::End)
+                & !matches!(node, Cave::Big(_))
+        })
+        .for_each(|repeat| {
+            distinct_path_with_repeat_options(
+                &cave_map,
+                &cave_map.start,
+                &mut small_caves_stack,
+                &mut path_storage,
+                (repeat, 2),
+            );
+
+            small_caves_stack.clear();
+            path_storage.reset_temp();
+        });
+
+    path_storage.count()
 }
 
 fn distinct_path_once(
@@ -42,124 +59,121 @@ fn distinct_path_once(
     }
 
     let mut result = 0;
-    for curr_node_index in cave_map.neighbours(curr_index) {
-        let curr_node_index = &curr_node_index;
+    for (curr_node_index, _) in cave_map.neighbours(curr_index) {
         // Cannot move though the start state & cannot pass through small caves more than once
         if small_caves_stack.contains(curr_node_index) || *curr_node_index == cave_map.start {
             continue;
         }
 
-        if let Cave::Small(_) = cave_map.map.get_node_data(curr_node_index) {
+        if matches!(cave_map.map.get(curr_node_index), Cave::Small(_)) {
             small_caves_stack.push(curr_node_index.clone());
         }
 
         result += distinct_path_once(cave_map, curr_node_index, small_caves_stack);
     }
 
-    if let Cave::Small(_) = cave_map.map.get_node_data(curr_index) {
+    if matches!(cave_map.map.get(curr_index), Cave::Small(_)) {
         small_caves_stack.pop();
     }
 
     result
 }
 
-#[allow(dead_code)]
-fn distinct_path_twice(
+fn distinct_path_with_repeat_options(
     cave_map: &CaveMap,
     curr_index: &NodePtr,
-    small_caves_stack: &mut HashSet<NodePtr>,
-    curr_node_to_repeat: &mut Option<(NodePtr, bool)>,
-    path: &mut Vec<Cave>,
-) -> u64 {
-    path.push(cave_map.map.get_node_data(curr_index).clone());
+    small_caves_stack: &mut Vec<NodePtr>,
+    path_storage: &mut PathsBuilder,
+    (repeat_node, mut count): (&Cave, i32),
+) {
+    path_storage.add_to_path(cave_map.get_node_data(curr_index).clone());
+
     if *curr_index == cave_map.end {
-        // {
-        //     println!("{{");
-        //     println!("\t{:?}", curr_node_to_repeat.clone().map(|(n, _)| {
-        //         cave_map.map.get_node_data(&n)
-        //     }));
-        //     {
-        //         print!("\t[");
-        //         path.iter().for_each(|node| {
-        //             print!("{:?}, ", node);
-        //         });
-        //         println!("]");
-        //     }
-        //     {
-        //         print!("\t[");
-        //         small_caves_stack.iter().for_each(|node| {
-        //             print!("{:?}, ", cave_map.map.get_node_data(node));
-        //         });
-        //         println!("]");
-        //     }
-        //     println!("}}");
-        // }
-        path.pop();
-        return 1;
+        path_storage.build_path();
+        return;
     }
 
-    let mut result = 0;
-    for curr_node_index in cave_map.neighbours(curr_index) {
-        let curr_node_index = &curr_node_index;
+    for (curr_node_index, _) in cave_map.neighbours(curr_index) {
         // Cannot move though the start state & cannot pass through small caves more than once
-        if small_caves_stack.contains(curr_node_index) || *curr_node_index == cave_map.start {
+        let current_cave = cave_map.get_node_data(curr_node_index);
+
+        if repeat_node == current_cave && count != 0 {
+            count -= 1;
+            // Continue on as you haven't visited the node twice
+        } else if small_caves_stack.contains(curr_node_index) || *curr_node_index == cave_map.start
+        {
             continue;
         }
 
-        if let Cave::Small(_) = cave_map.map.get_node_data(curr_node_index) {
-            // Check if any node is set for a check of repeat entry
-            if let Some((node, is_visited_twice)) = curr_node_to_repeat {
-                // Check if the current node is the one to repeat
-                if *node == *curr_node_index {
-                    // If the small cave was visited twice, skip it
-                    if *is_visited_twice {
-                        // Skip the small cave
-                        // TODO: Add it back to the stack when u finally leave the node
-                        small_caves_stack.insert(curr_node_index.clone());
-                        continue;
-                    }
-                    // Decrement the repeat count
-                    *is_visited_twice = true;
-                } else {
-                    small_caves_stack.insert(curr_node_index.clone());
-                }
-            } else {
-                *curr_node_to_repeat = Some((curr_node_index.clone(), false));
-            }
+        if matches!(cave_map.map.get(curr_node_index), Cave::Small(_)) {
+            small_caves_stack.push(curr_node_index.clone());
         }
 
-        result += distinct_path_twice(
+        distinct_path_with_repeat_options(
             cave_map,
             curr_node_index,
             small_caves_stack,
-            curr_node_to_repeat,
-            path,
+            path_storage,
+            (repeat_node, count),
         );
-    }
+        path_storage.pop_path();
 
-    if let Cave::Small(_) = cave_map.map.get_node_data(curr_index) {
-        if let Some((node, is_visited_twice)) = curr_node_to_repeat {
-            if *node == *curr_index {
-                if *is_visited_twice {
-                    small_caves_stack.remove(curr_index);
-                    *is_visited_twice = false;
-                } else {
-                    // Visited once, remove the node from the stack
-                    *curr_node_to_repeat = None;
-                }
-                path.pop();
-            } else {
-                small_caves_stack.remove(curr_index);
-                path.pop();
-            }
-        } else {
-            panic!("Small cave not found in stack");
+        if repeat_node == current_cave {
+            count += 1;
         }
-    } else {
-        path.pop();
     }
 
-    result
+    if matches!(cave_map.map.get(curr_index), Cave::Small(_)) {
+        small_caves_stack.pop();
+    }
+}
+
+struct PathsBuilder {
+    final_paths: HashSet<String>,
+    curr_path_building: Vec<String>,
+}
+
+impl PathsBuilder {
+    fn new() -> PathsBuilder {
+        Self {
+            curr_path_building: vec![],
+            final_paths: HashSet::new(),
+        }
+    }
+
+    fn reset_temp(&mut self) {
+        self.curr_path_building.clear();
+    }
+
+    fn count(&self) -> usize {
+        self.final_paths.len()
+    }
+
+    fn add_to_path(&mut self, cave: Cave) {
+        self.curr_path_building.push(format!("{:?}", cave));
+    }
+
+    fn pop_path(&mut self) {
+        assert!(self.curr_path_building.pop().is_some());
+    }
+
+    fn build_path(&mut self) {
+        let new_path = self
+            .curr_path_building
+            .iter()
+            .fold(String::new(), |acc, x| acc + x);
+        self.final_paths.insert(new_path);
+    }
+}
+
+impl Debug for PathsBuilder {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Paths to End {{")?;
+        for path in self.final_paths.iter() {
+            writeln!(f, "\t{:?}", path)?;
+        }
+        write!(f, "}}")
+    }
 }
 
 #[derive(Debug)]
@@ -172,6 +186,14 @@ struct CaveMap {
 impl CaveMap {
     fn neighbours(&self, curr_index: &NodePtr) -> Neighbours<'_, Cave, ()> {
         self.map.neighbours_iter(curr_index)
+    }
+
+    fn get_nodes(&self) -> Vec<&Cave> {
+        self.map.nodes()
+    }
+
+    fn get_node_data(&self, node_ptr: &NodePtr) -> &Cave {
+        self.map.get(node_ptr)
     }
 }
 
@@ -220,12 +242,16 @@ impl From<Vec<String>> for CaveMap {
     fn from(value: Vec<String>) -> Self {
         let points = value
             .into_iter()
-            .flat_map(|points| {
+            .map(|points| {
                 let (from, to) = points.split_once('-').unwrap();
-                [
-                    (Cave::from(from.to_string()), Cave::from(to.to_string())),
-                    (Cave::from(to.to_string()), Cave::from(from.to_string())),
-                ]
+                (
+                    Cave::from(from.to_string()),
+                    Cave::from(to.to_string()),
+                    Relationship::BiDirectional {
+                        a_to_b: (),
+                        b_to_a: (),
+                    },
+                )
             })
             .collect::<Vec<_>>();
         let graph = Graph::from(points);

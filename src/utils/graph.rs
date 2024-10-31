@@ -141,7 +141,6 @@ impl<N, E> Graph<N, E> {
             .map(|node| node.node_index.clone())
     }
 
-
     /// # Returns
     ///
     /// Gets the number of nodes in the graph.
