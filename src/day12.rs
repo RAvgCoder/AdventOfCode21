@@ -34,7 +34,7 @@ fn part2(cave_map: CaveMap) -> usize {
                 & !matches!(node, Cave::Big(_))
         })
         .for_each(|repeat| {
-            distinct_path_with_repeat_options(
+            distinct_path_with_options(
                 &cave_map,
                 &cave_map.start,
                 &mut small_caves_stack,
@@ -79,7 +79,7 @@ fn distinct_path_once(
     result
 }
 
-fn distinct_path_with_repeat_options(
+fn distinct_path_with_options(
     cave_map: &CaveMap,
     curr_index: &NodePtr,
     small_caves_stack: &mut Vec<NodePtr>,
@@ -109,7 +109,7 @@ fn distinct_path_with_repeat_options(
             small_caves_stack.push(curr_node_index.clone());
         }
 
-        distinct_path_with_repeat_options(
+        distinct_path_with_options(
             cave_map,
             curr_node_index,
             small_caves_stack,
