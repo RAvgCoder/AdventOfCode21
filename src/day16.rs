@@ -84,7 +84,6 @@ impl<'a> Packet<'a> {
             let mut compute_fn =
                 Self::compute_from_type_id(type_id as usize, &mut self.evaluated_expression);
 
-
             if bits.as_bytes()[6] as char == '0' {
                 let offset = 7 + 15;
                 let sub_packet_length = Self::binary_str_to_int(&bits[7..offset]);
@@ -109,7 +108,6 @@ impl<'a> Packet<'a> {
                     new_bits = rest;
                     acc_version_number += version_number;
                 }
-
 
                 // Return the other packets that were not consumed in the fixed range
                 PacketResult {
@@ -140,7 +138,6 @@ impl<'a> Packet<'a> {
                     bits = rest;
                 }
 
-
                 PacketResult {
                     version_number: acc_version_number,
                     rest: bits,
@@ -149,7 +146,6 @@ impl<'a> Packet<'a> {
         }
     }
 
-    
     /// Returns a closure that modifies the accumulator based on the `type_id`.
     ///
     /// # Arguments
