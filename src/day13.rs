@@ -69,7 +69,7 @@ impl Origami {
         let transposed_points: Vec<Coordinate> = self
             .dot_coordinates
             .iter()
-            .map(|coordinate| Coordinate::new(coordinate.j, coordinate.i))
+            .map(Coordinate::transpose)
             .collect();
         let (max_x, max_y) = transposed_points
             .iter()
