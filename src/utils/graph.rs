@@ -116,6 +116,10 @@ impl<N, E> Graph<N, E> {
         }
     }
 
+    pub fn nodes(&self) -> Vec<&N> {
+        self.nodes.iter().map(|node| &node.data).collect::<Vec<_>>()
+    }
+
     /// Finds the index of a node containing the specified data.
     ///
     /// # Arguments
@@ -137,8 +141,39 @@ impl<N, E> Graph<N, E> {
             .map(|node| node.node_index.clone())
     }
 
-    pub fn num_of_nodes(&self) -> usize {
+
+    /// # Returns
+    ///
+    /// Gets the number of nodes in the graph.
+    pub fn len(&self) -> usize {
         self.nodes.len()
+    }
+
+    /// Gets a reference to the data stored in the node at the specified index.
+    ///
+    /// # Arguments
+    ///
+    /// * `node_index` - The index of the node.
+    ///
+    /// # Returns
+    ///
+    /// A reference to the data stored in the node.
+    pub fn get(&self, node_index: &NodePtr) -> &N {
+        &self.nodes[node_index.idx].data
+    }
+
+    /// Gets a mutable reference to the data stored in the node at the specified index.
+    ///
+    /// # Arguments
+    ///
+    /// * `node_index` - The index of the node.
+    ///
+    /// # Returns
+    ///
+    /// A mutable reference to the data stored in the node.
+    #[allow(dead_code)]
+    pub fn get_mut(&mut self, node_index: NodePtr) -> &mut N {
+        &mut self.nodes[node_index.idx].data
     }
 
     /// Adds a new node with the specified data to the graph.
@@ -161,33 +196,6 @@ impl<N, E> Graph<N, E> {
         });
 
         node_index
-    }
-
-    /// Gets a reference to the data stored in the node at the specified index.
-    ///
-    /// # Arguments
-    ///
-    /// * `node_index` - The index of the node.
-    ///
-    /// # Returns
-    ///
-    /// A reference to the data stored in the node.
-    pub fn get_node_data(&self, node_index: &NodePtr) -> &N {
-        &self.nodes[node_index.idx].data
-    }
-
-    /// Gets a mutable reference to the data stored in the node at the specified index.
-    ///
-    /// # Arguments
-    ///
-    /// * `node_index` - The index of the node.
-    ///
-    /// # Returns
-    ///
-    /// A mutable reference to the data stored in the node.
-    #[allow(dead_code)]
-    fn get_node_data_mut(&mut self, node_index: NodePtr) -> &mut N {
-        &mut self.nodes[node_index.idx].data
     }
 
     /// Adds a new edge between two nodes in the graph.
@@ -216,21 +224,32 @@ impl<N, E> Graph<N, E> {
     /// * `from` - The data of the source node.
     /// * `to` - The data of the destination node.
     /// * `edge_data` - The data to store in the new edge.
-    pub fn add_edge_by_data(&mut self, from: N, to: N, edge_data: E)
+    pub fn add_edge_by_data(&mut self, node_a: N, node_b: N, relatoinship: Relationship<E>)
     where
         N: PartialEq + Eq,
     {
-        let from_index = match self.find_node_index(|node| node == &from) {
-            None => self.add_node(from),
+        let a_index = match self.find_node_index(|node| node == &node_a) {
+            None => self.add_node(node_a),
             Some(node_index) => node_index,
         };
 
-        let to_index = match self.find_node_index(|node| node == &to) {
-            None => self.add_node(to),
+        let b_index = match self.find_node_index(|node| node == &node_b) {
+            None => self.add_node(node_b),
             Some(node_index) => node_index,
         };
 
-        self.add_edge(from_index, to_index, edge_data);
+        match relatoinship {
+            Relationship::BiDirectional { a_to_b, b_to_a } => {
+                self.add_edge(a_index.clone(), b_index.clone(), a_to_b);
+                self.add_edge(b_index, a_index, b_to_a);
+            }
+            Relationship::AToB(edge) => {
+                self.add_edge(a_index, b_index, edge);
+            }
+            Relationship::BToA(edge) => {
+                self.add_edge(b_index, a_index, edge);
+            }
+        }
     }
 
     fn get_edge(&self, edge_index: EdgePtr) -> &Edge<E> {
@@ -250,14 +269,17 @@ pub struct Neighbours<'a, N, E> {
     edges: Option<EdgePtr>,
 }
 
-impl<N, E> Iterator for Neighbours<'_, N, E> {
-    type Item = NodePtr;
+impl<'a, N, E> Iterator for Neighbours<'a, N, E>
+where
+    E: 'a,
+{
+    type Item = (&'a NodePtr, &'a E);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.edges.clone().map(|edge_index| {
             let edge = self.graph.get_edge(edge_index);
             self.edges = edge.next_edge.clone();
-            edge.to.clone()
+            (&edge.to, &edge.data)
         })
     }
 }
@@ -313,6 +335,23 @@ where
     }
 }
 
+/// Represents the type of relationship between two nodes in the graph.
+///
+/// # Type Parameters
+/// * `E` - The type of data stored in the edges.
+#[derive(Debug, Clone)]
+pub enum Relationship<E> {
+    /// A bidirectional relationship between two nodes.
+    /// Contains data for both directions (a->b and b->a).
+    BiDirectional { a_to_b: E, b_to_a: E },
+
+    /// A unidirectional relationship from node A to node B.
+    AToB(E),
+
+    /// A unidirectional relationship from node B to node A.
+    BToA(E),
+}
+
 impl<N, E> From<HashMap<N, N>> for Graph<N, E>
 where
     N: PartialEq + Eq,
@@ -333,16 +372,15 @@ where
             nodes: Vec::with_capacity(hash_map.len()),
         };
         for (from, to) in hash_map {
-            graph.add_edge_by_data(from, to, E::default());
+            graph.add_edge_by_data(from, to, Relationship::AToB(E::default()));
         }
         graph
     }
 }
 
-impl<N, E> From<Vec<(N, N)>> for Graph<N, E>
+impl<N, E> From<Vec<(N, N, Relationship<E>)>> for Graph<N, E>
 where
     N: PartialEq + Eq,
-    E: Default,
 {
     /// Creates a graph from a vector of tuples where each tuple represents an edge.
     ///
@@ -353,22 +391,21 @@ where
     /// # Returns
     ///
     /// A new instance of `Graph`.
-    fn from(vec_tuple: Vec<(N, N)>) -> Self {
+    fn from(vec_tuple: Vec<(N, N, Relationship<E>)>) -> Self {
         let mut graph = Self {
             edges: Vec::with_capacity(vec_tuple.len()),
             nodes: Vec::with_capacity(vec_tuple.len()),
         };
-        for (from, to) in vec_tuple {
-            graph.add_edge_by_data(from, to, E::default());
+        for (from, to, relationship) in vec_tuple {
+            graph.add_edge_by_data(from, to, relationship);
         }
         graph
     }
 }
 
-impl<N, E, const S: usize> From<[(N, N); S]> for Graph<N, E>
+impl<N, E, const S: usize> From<[(N, N, Relationship<E>); S]> for Graph<N, E>
 where
     N: PartialEq + Eq,
-    E: Default,
 {
     /// Creates a graph from a vector of tuples where each tuple represents an edge.
     ///
@@ -379,14 +416,16 @@ where
     /// # Returns
     ///
     /// A new instance of `Graph`.
-    fn from(array_tuple: [(N, N); S]) -> Self {
+    fn from(array_tuple: [(N, N, Relationship<E>); S]) -> Self {
         let mut graph = Self {
             edges: Vec::with_capacity(array_tuple.len()),
             nodes: Vec::with_capacity(array_tuple.len()),
         };
-        for (from, to) in array_tuple {
-            graph.add_edge_by_data(from, to, E::default());
+
+        for (from, to, relationship) in array_tuple {
+            graph.add_edge_by_data(from, to, relationship);
         }
+
         graph
     }
 }
