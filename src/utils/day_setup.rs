@@ -158,11 +158,19 @@ Found: {:?}
     }
 
     fn log_elapsed_time(elapsed_time: Duration) -> String {
-        // Convert to milliseconds and microseconds
-        let millis = elapsed_time.as_millis();
+        // Convert to minutes, seconds, milliseconds, and microseconds
+        let minutes = elapsed_time.as_secs() / 60;
+        let secs = elapsed_time.as_secs() % 60;
+        let millis = elapsed_time.as_millis() % 1_000;
         let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
 
-        format!("{} milli secs and {} micro secs", millis, micros)
+        if minutes > 0 {
+            format!("{} minutes, {} secs, {} millis, and {} micros", minutes, secs, millis, micros)
+        } else if secs > 0 {
+            format!("{} secs, {} millis, and {} micros", secs, millis, micros)
+        } else {
+            format!("{} millis and {} micros", millis, micros)
+        }
     }
 
     /// Reads a file and returns its content as a vector of elements of type `T`.
@@ -279,7 +287,7 @@ fn part2(input: Vec<String>) -> u64 {{
             Utils::AOC_YEAR,
             day_num
         )
-        .expect("Failed to write to file");
+            .expect("Failed to write to file");
         println!(
             "File successfully created at location: {} & {}",
             src_file_path.display(),
