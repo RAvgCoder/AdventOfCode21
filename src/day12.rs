@@ -2,6 +2,7 @@ use crate::utils::day_setup::Utils;
 use crate::utils::graph::{Graph, Neighbours, NodePtr, Relationship};
 use std::collections::HashSet;
 use std::fmt::{Debug, Formatter};
+use std::sync::mpsc::{Receiver, Sender};
 
 /// Runs the Advent of Code puzzles for [Current Day](https://adventofcode.com/2021/day/12).
 ///
@@ -22,31 +23,28 @@ fn part1(cave_map: CaveMap) -> u64 {
 }
 
 fn part2(cave_map: CaveMap) -> usize {
-    let mut small_caves_stack: Vec<NodePtr> = Vec::with_capacity(cave_map.map.len());
-    let mut path_storage = PathsBuilder::new();
+    let mut path_builder = PathsBuilder::new();
 
-    cave_map
-        .get_nodes()
-        .iter()
-        .filter(|node| {
-            !matches!(node, Cave::Start)
-                & !matches!(node, Cave::End)
-                & !matches!(node, Cave::Big(_))
-        })
-        .for_each(|repeat| {
-            distinct_path_with_options(
-                &cave_map,
-                &cave_map.start,
-                &mut small_caves_stack,
-                &mut path_storage,
-                (repeat, 2),
-            );
+    std::thread::scope(|scope| {
+        cave_map
+            .get_nodes()
+            .iter()
+            .filter(|node| matches!(node, Cave::Small(_)))
+            .map(|cave| (cave, path_builder.new_path()))
+            .for_each(|(repeat_cave, path)| {
+                scope.spawn(|| {
+                    let mut path = path;
+                    distinct_path_with_options(
+                        &cave_map,
+                        &cave_map.start,
+                        &mut path,
+                        (repeat_cave, 2),
+                    );
+                });
+            });
+    });
 
-            small_caves_stack.clear();
-            path_storage.reset_temp();
-        });
-
-    path_storage.count()
+    path_builder.build()
 }
 
 fn distinct_path_once(
@@ -82,14 +80,13 @@ fn distinct_path_once(
 fn distinct_path_with_options(
     cave_map: &CaveMap,
     curr_index: &NodePtr,
-    small_caves_stack: &mut Vec<NodePtr>,
-    path_storage: &mut PathsBuilder,
+    path: &mut Path,
     (repeat_node, mut count): (&Cave, i32),
 ) {
-    path_storage.add_to_path(cave_map.get_node_data(curr_index).clone());
+    path.add_to_path(cave_map.get_node_data(curr_index).clone());
 
     if *curr_index == cave_map.end {
-        path_storage.build_path();
+        path.send();
         return;
     }
 
@@ -100,23 +97,16 @@ fn distinct_path_with_options(
         if repeat_node == current_cave && count != 0 {
             count -= 1;
             // Continue on as you haven't visited the node twice
-        } else if small_caves_stack.contains(curr_node_index) || *curr_node_index == cave_map.start
-        {
+        } else if path.contains(curr_node_index) || *curr_node_index == cave_map.start {
             continue;
         }
 
         if matches!(cave_map.map.get(curr_node_index), Cave::Small(_)) {
-            small_caves_stack.push(curr_node_index.clone());
+            path.add_to_visited(curr_node_index.clone());
         }
 
-        distinct_path_with_options(
-            cave_map,
-            curr_node_index,
-            small_caves_stack,
-            path_storage,
-            (repeat_node, count),
-        );
-        path_storage.pop_path();
+        distinct_path_with_options(cave_map, curr_node_index, path, (repeat_node, count));
+        path.pop_path();
 
         if repeat_node == current_cave {
             count += 1;
@@ -124,45 +114,144 @@ fn distinct_path_with_options(
     }
 
     if matches!(cave_map.map.get(curr_index), Cave::Small(_)) {
-        small_caves_stack.pop();
+        path.remove_from_visited(curr_index);
     }
 }
 
+/// A builder for managing and storing paths in the cave system.
+///
+/// This struct is responsible for creating new paths, storing the final paths,
+/// and sending the completed paths through a channel.
 struct PathsBuilder {
+    /// A set of final paths represented as strings.
     final_paths: HashSet<String>,
-    curr_path_building: Vec<String>,
+    /// An optional sender channel to send the completed paths.
+    tx: Option<Sender<Vec<String>>>,
+    /// A receiver channel to receive the completed paths.
+    rx: Receiver<Vec<String>>,
+}
+
+/// Represents a path in the cave system.
+///
+/// This struct is used to build and store a path through the cave system,
+/// sending the completed path through a channel when finished.
+struct Path {
+    /// The sender channel to send the completed path.
+    tx: Sender<Vec<String>>,
+    /// The current path being built.
+    path: Vec<String>,
+    /// A set of visited nodes in the current path.
+    visited: HashSet<NodePtr>,
+}
+
+impl Path {
+    /// Adds a cave to the current path.
+    ///
+    /// # Arguments
+    /// * `cave` - The cave to add to the path.
+    fn add_to_path(&mut self, cave: Cave) {
+        self.path.push(format!("{:?}", cave));
+    }
+
+    /// Removes a node from the set of visited nodes.
+    ///
+    /// # Arguments
+    /// * `node_ptr` - The node to remove from the visited set.
+    fn remove_from_visited(&mut self, node_ptr: &NodePtr) {
+        self.visited.remove(node_ptr);
+    }
+
+    /// Checks if a node is in the set of visited nodes.
+    ///
+    /// # Arguments
+    /// * `node_ptr` - The node to check.
+    ///
+    /// # Returns
+    /// `true` if the node is in the visited set, `false` otherwise.
+    fn contains(&mut self, node_ptr: &NodePtr) -> bool {
+        self.visited.contains(node_ptr)
+    }
+
+    /// Removes the last cave from the current path.
+    ///
+    /// # Panics
+    /// Panics if the path is empty.
+    fn pop_path(&mut self) {
+        assert!(self.path.pop().is_some());
+    }
+
+    /// Adds a node to the set of visited nodes.
+    ///
+    /// # Arguments
+    /// * `node_ptr` - The node to add to the visited set.
+    fn add_to_visited(&mut self, node_ptr: NodePtr) {
+        self.visited.insert(node_ptr);
+    }
+
+    /// Sends the completed path through the channel.
+    ///
+    /// # Panics
+    /// Panics if the channel fails to send the path.
+    fn send(&self) {
+        self.tx
+            .send(self.path.clone())
+            .expect("Failed to send path to build");
+    }
 }
 
 impl PathsBuilder {
+    /// Creates a new `PathsBuilder`.
+    ///
+    /// # Returns
+    /// A new instance of `PathsBuilder`.
     fn new() -> PathsBuilder {
+        let (tx, rx) = std::sync::mpsc::channel();
         Self {
-            curr_path_building: vec![],
             final_paths: HashSet::new(),
+            rx,
+            tx: Some(tx),
         }
     }
 
-    fn reset_temp(&mut self) {
-        self.curr_path_building.clear();
+    /// Creates a new `Path`.
+    ///
+    /// # Returns
+    /// A new instance of `Path`.
+    ///
+    /// # Panics
+    /// Panics if the channel sender no longer exists.
+    fn new_path(&self) -> Path {
+        Path {
+            tx: self
+                .tx
+                .clone()
+                .expect("Cannot create path as the Channel Sender no longer exists")
+                .clone(),
+            path: vec![],
+            visited: HashSet::new(),
+        }
     }
 
+    /// Returns the number of final paths.
+    ///
+    /// # Returns
+    /// The number of final paths.
     fn count(&self) -> usize {
         self.final_paths.len()
     }
 
-    fn add_to_path(&mut self, cave: Cave) {
-        self.curr_path_building.push(format!("{:?}", cave));
-    }
+    /// Builds the final paths by collecting them from the receiver channel.
+    ///
+    /// # Returns
+    /// The number of final paths.
+    fn build(&mut self) -> usize {
+        drop(self.tx.take());
+        for path in self.rx.iter() {
+            self.final_paths
+                .insert(path.iter().fold(String::new(), |acc, x| acc + x));
+        }
 
-    fn pop_path(&mut self) {
-        assert!(self.curr_path_building.pop().is_some());
-    }
-
-    fn build_path(&mut self) {
-        let new_path = self
-            .curr_path_building
-            .iter()
-            .fold(String::new(), |acc, x| acc + x);
-        self.final_paths.insert(new_path);
+        self.count()
     }
 }
 
