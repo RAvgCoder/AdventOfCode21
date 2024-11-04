@@ -19,12 +19,11 @@ pub fn run() {
     // 5479 too Low
     // 5971 too high
     // 5539 X
-    Utils::run_part_single(part1, 1, 0, Some(35));
+    Utils::run_part_single(part1, 1, 20, Some(35));
     Utils::run_part(part2, 2, 0, None);
 }
 
 fn part1(mut image_enhancer: ImageEnhancer) -> usize {
-    println!("{:#?}", image_enhancer.image);
     image_enhancer.enhance::<2>();
     image_enhancer.image.pixel_count()
 }
@@ -38,7 +37,6 @@ type Pixel = Option<()>;
 struct ImageEnhancer {
     enhancement_algorithm: [Pixel; 512],
     image: Image,
-    buffer: HashSet<Coordinate>,
 }
 
 impl ImageEnhancer {
@@ -63,7 +61,6 @@ impl ImageEnhancer {
     }
 
     fn enhance_once(&mut self) {
-        self.buffer.clear();
         let (row_range, column_range) = self.image.loop_range();
 
         for i in row_range {
@@ -90,16 +87,12 @@ impl ImageEnhancer {
 
                 let pixel = self.decode_enhancement_number(&enhancement_number);
                 if pixel.is_some() {
-                    self.write_to_buff(&curr_coord);
+                    self.image.write_to_buff(&curr_coord);
                 }
             }
         }
 
-        self.image.write_from_buffer(&mut self.buffer);
-    }
-
-    pub fn write_to_buff(&mut self, coord: &Coordinate) {
-        self.buffer.insert(*coord);
+        self.image.flush_buffer();
     }
 }
 
@@ -107,9 +100,10 @@ struct Image {
     width_range: RangeInclusive<i32>,
     height_range: RangeInclusive<i32>,
     pixels: HashSet<Coordinate>,
+    back_buffer: HashSet<Coordinate>,
     infinity_pixels: HashSet<Coordinate>,
-    // (AllOff, AllOn)
-    infinity: (Pixel, Pixel),
+    // [AllOff, AllOn]
+    infinity: [Pixel; 2],
 }
 
 type RowRange = RangeInclusive<i32>;
@@ -127,11 +121,13 @@ impl Image {
         )
     }
 
-    fn write_from_buffer(&mut self, buffer: &mut HashSet<Coordinate>) {
-        // Swap the pixels storage
-        mem::swap(&mut self.pixels, buffer);
-        // Swap the infinity pixels
-        mem::swap(&mut self.infinity.1, &mut self.infinity.0);
+    fn flush_buffer(&mut self) {
+        mem::swap(&mut self.pixels, &mut self.back_buffer);
+        {
+            let mut tmp = self.infinity[0];
+            mem::swap(&mut self.infinity[1], &mut tmp);
+        }
+        self.back_buffer.clear();
 
         // Redefine the range
         let mut min_width = i32::MAX;
@@ -151,6 +147,9 @@ impl Image {
         self.height_range = min_height..=max_height;
     }
 
+    pub fn write_to_buff(&mut self, coord: &Coordinate) {
+        self.back_buffer.insert(*coord);
+    }
 
     fn at_infinity(&self, coordinate: &Coordinate) -> bool {
         let width = self.width_range.clone();
@@ -161,7 +160,7 @@ impl Image {
     /// Gets the pixel at the given coordinate.
     fn get_pixel(&self, coord: &Coordinate) -> Pixel {
         if self.at_infinity(coord) {
-            self.infinity.0
+            self.infinity[0]
         } else {
             self.pixels.get(coord).map(|_| ())
         }
@@ -184,16 +183,16 @@ impl Debug for ImageEnhancer {
 
 impl Debug for Image {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Pixels: ({}, {})", self.infinity.0.is_some(), self.infinity.1.is_some())?;
+        writeln!(f, "Pixels: {:#?}", self.infinity)?;
         writeln!(f, "Width Range: {:#?}", self.width_range)?;
         writeln!(f, "Height Range: {:#?}", self.height_range)?;
         writeln!(f, "Pixel Count: {}", self.pixel_count())?;
         for x in self.height_range.clone() {
             for y in self.width_range.clone() {
                 if self.get_pixel(&Coordinate::new(x, y)).is_some() {
-                    write!(f, "# ")?;
-                } else {
-                    write!(f, ". ")?;
+                    write!(f,"# ")?;
+                }else {
+                    write!(f,". ")?;
                 }
             }
             writeln!(f)?;
@@ -241,14 +240,14 @@ impl From<Vec<String>> for ImageEnhancer {
                 pixels,
                 width_range: 0..=max_width,
                 height_range: 0..=max_height,
+                back_buffer: HashSet::new(),
                 infinity_pixels: HashSet::new(),
-                infinity: (
+                infinity: [
                     *enhancement_algorithm.first().unwrap(),
-                    *enhancement_algorithm.last().unwrap()
-                ),
+                    *enhancement_algorithm.last().unwrap(),
+                ],
             },
             enhancement_algorithm,
-            buffer: HashSet::new(),
         }
     }
 }
