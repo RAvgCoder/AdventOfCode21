@@ -117,6 +117,7 @@ pub mod direction {
         East,
         South,
         West,
+        Current
     }
 
     impl Direction {
@@ -126,6 +127,7 @@ pub mod direction {
                 Self::East => (0, 1),
                 Self::South => (1, 0),
                 Self::West => (0, -1),
+                Self::Current => (0, 0),
             }
         }
 
@@ -170,6 +172,7 @@ pub mod direction {
         SouthWest,
         West,
         NorthWest,
+        Current,
     }
 
     impl FullDirection {
@@ -184,6 +187,7 @@ pub mod direction {
                 Self::SouthWest => (1, -1),
                 Self::West => Direction::West.offset(),
                 Self::NorthWest => (-1, -1),
+                Self::Current => Direction::Current.offset(),
             }
         }
 

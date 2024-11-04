@@ -7,6 +7,8 @@ mod day14;
 mod day15;
 mod day16;
 mod day17;
+mod day18;
+mod day19;
 mod day2;
 mod day3;
 mod day4;
@@ -16,58 +18,33 @@ mod day7;
 mod day8;
 mod day9;
 mod utils;
-mod day18;
-
-const DAYS_COMPLETED: [fn(); 18] = [
-    day1::run,
-    day2::run,
-    day3::run,
-    day4::run,
-    day5::run,
-    day6::run,
-    day7::run,
-    day8::run,
-    day9::run,
-    day10::run,
-    day11::run,
-    day12::run,
-    day13::run,
-    day14::run,
-    day15::run,
-    day16::run,
-    day17::run,
-    day18::run,
-];
+mod day20;
 
 fn main() {
-    // utils::day_setup::Utils::new_day(18);
-    // DAYS_COMPLETED.iter().for_each(|day| { day(); println!() });
-    DAYS_COMPLETED.last().unwrap()();
-   
+    // utils::day_setup::Utils::new_day(20);
+    [
+        day1::run,
+        day2::run,
+        day3::run,
+        day4::run,
+        day5::run,
+        day6::run,
+        day7::run,
+        day8::run,
+        day9::run,
+        day10::run,
+        day11::run,
+        day14::run,
+        day16::run,
+        day17::run,
+        day18::run,
+        day12::run, // Incomplete
+        day13::run,
+        day15::run,
+        day19::run, // Incomplete
+        day20::run, 
+    ]
+    // .iter().for_each(|day| { day(); println!() });
+    .last()
+    .unwrap()();
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
