@@ -1,4 +1,5 @@
 use crate::day21::board::Board;
+use crate::day21::board::PlayMode;
 use crate::day21::die::Dice;
 use crate::day21::pawn::Pawn;
 use crate::utils::day_setup::Utils;
@@ -22,14 +23,14 @@ fn part1(input: Vec<String>) -> u32 {
     let player1 = input[0].parse::<Pawn>().unwrap();
     let player2 = input[1].parse::<Pawn>().unwrap();
 
-    Board::new_deterministic(player1, player2).play_till_score(SCORE)
+    Board::new_deterministic(player1, player2, SCORE).play()
 }
 
 fn part2(input: Vec<String>) -> u64 {
     const SCORE: u32 = 21;
     let player1 = input[0].parse::<Pawn>().unwrap();
     let player2 = input[1].parse::<Pawn>().unwrap();
-    Board::new_quantum(player1, player2).play_till_score(SCORE)
+    Board::new_quantum(player1, player2, SCORE).play(PlayMode::Recursive)
 }
 
 mod die {
@@ -55,139 +56,174 @@ mod die {
         }
     }
 
-    const RANGE: RangeInclusive<u16> = 1..=100;
-    const ROLL_NUM: usize = 3;
     impl Dice<Deterministic> {
+        const ROLL_NUM: usize = 3;
+        const RANGE: RangeInclusive<u16> = 1..=100;
         pub fn new_deterministic() -> Self {
             Self {
-                side: RANGE.clone().cycle(),
+                side: Self::RANGE.clone().cycle(),
                 num_of_rolls: 0,
                 _marker: PhantomData,
             }
         }
 
         pub fn next_roll(&mut self) -> u16 {
-            self.num_of_rolls += ROLL_NUM as u16;
-            self.side.by_ref().take(ROLL_NUM).sum()
+            self.num_of_rolls += Self::ROLL_NUM as u16;
+            self.side.by_ref().take(Self::ROLL_NUM).sum()
         }
     }
 
     pub type Possibilities = u16;
     impl Dice<Quantum> {
+        const ROLL_NUM: usize = 27;
+
+        pub const fn quantum_rolls() -> [Possibilities; Self::ROLL_NUM] {
+            let mut rolls = [0; 27];
+            let mut index = 0;
+            let mut i = 1;
+            while i <= 3 {
+                let mut j = 1;
+                while j <= 3 {
+                    let mut k = 1;
+                    while k <= 3 {
+                        rolls[index] = i + j + k;
+                        index += 1;
+                        k += 1;
+                    }
+                    j += 1;
+                }
+                i += 1;
+            }
+            rolls
+        }
+
         pub fn new_quantum() -> Self {
+            const RANGE: RangeInclusive<u16> = 1..=3;
             Self {
                 side: RANGE.clone().cycle(),
                 num_of_rolls: 0,
                 _marker: PhantomData,
             }
         }
-
-        pub fn next_roll(&mut self) -> [Possibilities; 3] {
-            self.num_of_rolls += ROLL_NUM as u16;
-            self.side
-                .by_ref()
-                .take(ROLL_NUM)
-                .collect::<Vec<_>>()
-                .try_into()
-                .unwrap()
-        }
     }
 }
 
 mod board {
-    use super::die::{Deterministic, Possibilities, Quantum};
+    use super::die::{Deterministic, Quantum};
     use super::{Dice, Pawn};
-    use std::collections::VecDeque;
+    use std::collections::HashMap;
 
     #[derive(Debug)]
     pub struct Board<D> {
         dice: Dice<D>,
         players: [Pawn; 2],
+        winning_score: u32,
+    }
+
+    pub enum PlayMode {
+        Recursive,
+        Iterative,
     }
 
     impl Board<Deterministic> {
-        pub fn new_deterministic(player1: Pawn, player2: Pawn) -> Self {
+        pub fn new_deterministic(player1: Pawn, player2: Pawn, winning_score: u32) -> Self {
             Self {
                 dice: Dice::new_deterministic(),
                 players: [player1, player2],
+                winning_score,
             }
         }
 
-        pub fn play_till_score(self, score: u32) -> u32 {
+        pub fn play(self) -> u32 {
             let Self {
                 mut dice,
                 mut players,
+                winning_score,
                 ..
             } = self;
 
             let mut player_choice = (0..=1).cycle();
-            while !players[0].has_won(score) && !players[1].has_won(score) {
+            while !players[0].has_won(winning_score) && !players[1].has_won(winning_score) {
                 let next_roll = dice.next_roll();
                 let current_player = player_choice.next().unwrap();
                 let pawn = &mut players[current_player];
                 pawn.update_score(next_roll);
             }
 
-            let winner = if players[0].has_won(score) {
+            let winner = if players[0].has_won(winning_score) {
                 &players[1]
             } else {
                 &players[0]
             };
+
             winner.score() * dice.get_num_rolls() as u32
         }
     }
 
     impl Board<Quantum> {
-        pub fn new_quantum(player1: Pawn, player2: Pawn) -> Self {
+        pub fn new_quantum(player1: Pawn, player2: Pawn, winning_score: u32) -> Self {
             Self {
                 dice: Dice::new_quantum(),
                 players: [player1, player2],
+                winning_score,
             }
         }
 
-        pub fn play_till_score(self, score: u32) -> u64 {
-            let Self {
-                mut dice, players, ..
-            } = self;
-
+        pub fn play(self, play_mode: PlayMode) -> u64 {
             let mut number_of_wins = [0, 0];
 
-            let mut players_universe = {
-                let mut p = VecDeque::with_capacity((score * 3) as usize);
-                p.extend(players);
-                p
-            };
+            let Self { players, .. } = self;
 
-            while let Some(curr_pawn) = players_universe.pop_front() {
-                let next_roll = dice.next_roll();
-                let new_pawns = Self::split_piece(next_roll, curr_pawn);
-                new_pawns.into_iter().for_each(|pawn| {
-                    if !pawn.has_won(score) {
-                        players_universe.push_back(pawn);
-                    } else {
-                        number_of_wins[pawn.player_id() as usize] += 1;
-                    }
-                });
+            match play_mode {
+                PlayMode::Recursive => {
+                    let mut memo = HashMap::new();
+                    number_of_wins = Self::play_recursively(players, self.winning_score, &mut memo)
+                }
+                PlayMode::Iterative => {}
             }
+
             number_of_wins.into_iter().max().unwrap()
         }
 
-        fn split_piece(next_roll: [Possibilities; 3], pawn: Pawn) -> [Pawn; 3] {
-            next_roll.map(|possibilities| {
-                let mut pawn = pawn.clone();
-                pawn.update_score(possibilities);
-                pawn
-            })
+        fn play_recursively(
+            [player1, player2]: [Pawn; 2],
+            score: u32,
+            memo: &mut HashMap<(Pawn, Pawn), [u64; 2]>,
+        ) -> [u64; 2] {
+            if player1.has_won(score) {
+                return [1, 0];
+            } else if player2.has_won(score) {
+                return [0, 1];
+            }
+
+            let state = (player1.clone(), player2.clone());
+            if let Some(&result) = memo.get(&state) {
+                return result;
+            }
+
+            let mut player1_wins = 0;
+            let mut player2_wins = 0;
+
+            for rolls in Dice::quantum_rolls() {
+                let mut new_player1 = player1.clone();
+                new_player1.update_score(rolls);
+
+                let [p2_wins, p1_wins] =
+                    Self::play_recursively([player2.clone(), new_player1], score, memo);
+
+                player1_wins += p1_wins;
+                player2_wins += p2_wins;
+            }
+
+            let result = [player1_wins, player2_wins];
+            memo.insert(state, result);
+            result
         }
     }
 }
 mod pawn {
-    use std::sync::atomic::{AtomicU8, Ordering};
-
-    static CURRENT_ID: AtomicU8 = AtomicU8::new(0);
-    #[derive(Debug, Clone)]
+    #[derive(Debug, Clone, Hash, PartialEq, Eq)]
     pub struct Pawn {
-        player_id: u8,
         curr_position: u8,
         score: u32,
     }
@@ -196,7 +232,6 @@ mod pawn {
             Ok(Self {
                 curr_position,
                 score: 0,
-                player_id: unsafe { Pawn::give_id()? },
             })
         }
 
@@ -204,54 +239,16 @@ mod pawn {
             self.score
         }
 
-        pub fn player_id(&self) -> u8 {
-            self.player_id
-        }
-
         pub fn has_won(&self, score: u32) -> bool {
             self.score >= score
         }
 
-        /// Generates a unique player ID for each `Pawn` instance.
-        ///
-        /// This function uses an atomic counter to ensure that each player gets a unique ID.
-        /// It is marked as `unsafe` because it relies on a global mutable state.
-        ///
-        /// # Returns
-        /// - `Ok(u8)`: The unique player ID.
-        /// - `Err(&'static str)`: An error if more than 2 players are created.
-        ///
-        /// # Safety
-        /// This function is `unsafe` because it manipulates a global atomic counter, which can lead to
-        /// undefined behavior if not used correctly. It should only be called in a controlled manner
-        /// where the number of players does not exceed 2.
-        unsafe fn give_id() -> Result<u8, &'static str> {
-            let curr_id = CURRENT_ID.load(Ordering::Relaxed);
-            let result = if curr_id > 1 {
-                Err("Can only hand out to 2 players")?
-            } else {
-                Ok(curr_id)
-            };
-            CURRENT_ID.fetch_add(1, Ordering::Relaxed);
-            result
-        }
-
-        pub fn update_score(&mut self, score: u16) {
-            self.curr_position = match (self.curr_position as u16 + score) % 10 {
+        pub fn update_score(&mut self, roll: u16) {
+            self.curr_position = match (self.curr_position as u16 + roll) % 10 {
                 0 => 10,
                 n => n as u8,
             };
             self.score += self.curr_position as u32;
-        }
-    }
-
-    impl Drop for Pawn {
-        /// Decrements the global player ID counter when a `Pawn` instance is dropped.
-        ///
-        /// This function is called automatically when a `Pawn` instance goes out of scope.
-        /// It uses an atomic operation to safely decrement the global `CURRENT_ID` counter.
-        fn drop(&mut self) {
-            CURRENT_ID.fetch_sub(1, Ordering::Relaxed);
         }
     }
 }
