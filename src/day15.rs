@@ -135,7 +135,7 @@ impl From<Vec<String>> for RiskMap {
                 })
                 .collect::<Vec<Box<[_]>>>()
                 .into_boxed_slice(), // Collect into boxed slice of boxed slices
-        );  
+        );
 
         RiskMap::new(grid) // Return a new RiskMap instance
     }

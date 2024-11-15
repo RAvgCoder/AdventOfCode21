@@ -165,7 +165,10 @@ Found: {:?}
         let micros = elapsed_time.as_micros() % 1_000; // Remaining microseconds after converting to milliseconds
 
         if minutes > 0 {
-            format!("{} minutes, {} secs, {} millis, and {} micros", minutes, secs, millis, micros)
+            format!(
+                "{} minutes, {} secs, {} millis, and {} micros",
+                minutes, secs, millis, micros
+            )
         } else if secs > 0 {
             format!("{} secs, {} millis, and {} micros", secs, millis, micros)
         } else {
@@ -287,7 +290,7 @@ fn part2(input: Vec<String>) -> u64 {{
             Utils::AOC_YEAR,
             day_num
         )
-            .expect("Failed to write to file");
+        .expect("Failed to write to file");
         println!(
             "File successfully created at location: {} & {}",
             src_file_path.display(),

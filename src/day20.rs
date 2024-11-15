@@ -15,22 +15,23 @@ use std::ops::RangeInclusive;
 ///   If the result of any part does not match the expected value.
 pub fn run() {
     // run_part(day_func_part_to_run, part_num, day_num)
-    // 165270 High
     // 5479 too Low
-    // 5971 too high
+    // 5525 X
     // 5539 X
-    Utils::run_part_single(part1, 1, 20, Some(35));
-    Utils::run_part(part2, 2, 0, None);
+    // 5971 too high
+    Utils::run_part_single(part1, 1, 0, None);
+    Utils::run_part_single(part2, 2, 0, None);
 }
 
 fn part1(mut image_enhancer: ImageEnhancer) -> usize {
+    println!("{:#?}", image_enhancer.image);
     image_enhancer.enhance::<2>();
     image_enhancer.image.pixel_count()
 }
 
-fn part2(input: Vec<String>) -> u64 {
-    // println!("Part 2 {:#?}", input);
-    0
+fn part2(mut image_enhancer: ImageEnhancer) -> usize {
+    image_enhancer.enhance::<0>();
+    image_enhancer.image.pixel_count()
 }
 
 type Pixel = Option<()>;
@@ -48,15 +49,33 @@ impl ImageEnhancer {
         }
     }
 
-    fn decode_enhancement_number(&self, encoded: &[Pixel; 9]) -> Pixel {
-        let mut enhancement_number = 0;
-        for (i, pixel) in encoded.iter().rev().enumerate() {
-            enhancement_number |= match pixel {
-                Some(_) => 1 << i,
-                None => 0,
-            };
-        }
-        // println!("Enhancement Number: {}", enhancement_number);
+    fn decode_number(&self, coordinate: &Coordinate) -> Pixel {
+        const DIRECTION: [FullDirection; 9] = [
+            FullDirection::NorthWest,
+            FullDirection::North,
+            FullDirection::NorthEast,
+            FullDirection::West,
+            FullDirection::Current,
+            FullDirection::East,
+            FullDirection::SouthWest,
+            FullDirection::South,
+            FullDirection::SouthEast,
+        ];
+
+        let enhancement_number = DIRECTION
+            .map(|d| {
+                let coord = *coordinate + d;
+                self.image.get_pixel(&coord)
+            })
+            .iter()
+            .rev()
+            .enumerate()
+            .fold(0, |acc, (i, pixel)| {
+                acc | match pixel {
+                    Some(_) => 1 << i,
+                    None => 0,
+                }
+            });
         self.enhancement_algorithm[enhancement_number]
     }
 
@@ -66,44 +85,25 @@ impl ImageEnhancer {
         for i in row_range {
             for j in column_range.clone() {
                 let curr_coord = Coordinate::new(i, j);
-
-                const DIRECTION: [FullDirection; 9] = [
-                    FullDirection::NorthWest,
-                    FullDirection::North,
-                    FullDirection::NorthEast,
-                    FullDirection::West,
-                    FullDirection::Current,
-                    FullDirection::East,
-                    FullDirection::SouthWest,
-                    FullDirection::South,
-                    FullDirection::SouthEast,
-                ];
-
-                let enhancement_number = DIRECTION
-                    .map(|d| {
-                        let coord = curr_coord + d;
-                        self.image.get_pixel(&coord)
-                    });
-
-                let pixel = self.decode_enhancement_number(&enhancement_number);
+                let pixel = self.decode_number(&curr_coord);
                 if pixel.is_some() {
-                    self.image.write_to_buff(&curr_coord);
+                    self.image.write(&curr_coord);
                 }
             }
         }
 
-        self.image.flush_buffer();
+        self.image.flush();
     }
 }
 
 struct Image {
     width_range: RangeInclusive<i32>,
     height_range: RangeInclusive<i32>,
-    pixels: HashSet<Coordinate>,
+    front_buffer: HashSet<Coordinate>,
     back_buffer: HashSet<Coordinate>,
-    infinity_pixels: HashSet<Coordinate>,
-    // [AllOff, AllOn]
-    infinity: [Pixel; 2],
+
+    // (AllOff, AllOn)
+    infinity: (Pixel, Pixel),
 }
 
 type RowRange = RangeInclusive<i32>;
@@ -111,7 +111,7 @@ type RowRange = RangeInclusive<i32>;
 type ColumnRange = RangeInclusive<i32>;
 impl Image {
     fn pixel_count(&self) -> usize {
-        self.pixels.len()
+        self.front_buffer.len()
     }
     fn loop_range(&self) -> (RowRange, ColumnRange) {
         const OFFSET: i32 = 1;
@@ -121,13 +121,19 @@ impl Image {
         )
     }
 
-    fn flush_buffer(&mut self) {
-        mem::swap(&mut self.pixels, &mut self.back_buffer);
-        {
-            let mut tmp = self.infinity[0];
-            mem::swap(&mut self.infinity[1], &mut tmp);
-        }
+    pub fn write(&mut self, coord: &Coordinate) {
+        self.back_buffer.insert(*coord);
+    }
+
+    fn flush(&mut self) {
+        // Swap the pixels storage
+        mem::swap(&mut self.front_buffer, &mut self.back_buffer);
         self.back_buffer.clear();
+
+        if self.infinity.0.is_some() {
+            // Swap the infinity pixels
+            mem::swap(&mut self.infinity.0, &mut self.infinity.1);
+        }
 
         // Redefine the range
         let mut min_width = i32::MAX;
@@ -135,7 +141,7 @@ impl Image {
         let mut min_height = i32::MAX;
         let mut max_height = 0;
 
-        for pixels in &self.pixels {
+        for pixels in &self.front_buffer {
             min_width = min_width.min(pixels.j);
             max_width = max_width.max(pixels.j);
 
@@ -147,10 +153,6 @@ impl Image {
         self.height_range = min_height..=max_height;
     }
 
-    pub fn write_to_buff(&mut self, coord: &Coordinate) {
-        self.back_buffer.insert(*coord);
-    }
-
     fn at_infinity(&self, coordinate: &Coordinate) -> bool {
         let width = self.width_range.clone();
         let height = self.height_range.clone();
@@ -160,9 +162,13 @@ impl Image {
     /// Gets the pixel at the given coordinate.
     fn get_pixel(&self, coord: &Coordinate) -> Pixel {
         if self.at_infinity(coord) {
-            self.infinity[0]
+            if self.infinity.0.is_some() {
+                Some(())
+            } else {
+                None
+            }
         } else {
-            self.pixels.get(coord).map(|_| ())
+            self.front_buffer.get(coord).map(|_| ())
         }
     }
 }
@@ -183,20 +189,25 @@ impl Debug for ImageEnhancer {
 
 impl Debug for Image {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Pixels: {:#?}", self.infinity)?;
+        writeln!(
+            f,
+            "Pixels: ({}, {})",
+            self.infinity.0.is_some(),
+            self.infinity.1.is_some()
+        )?;
         writeln!(f, "Width Range: {:#?}", self.width_range)?;
         writeln!(f, "Height Range: {:#?}", self.height_range)?;
         writeln!(f, "Pixel Count: {}", self.pixel_count())?;
-        for x in self.height_range.clone() {
-            for y in self.width_range.clone() {
-                if self.get_pixel(&Coordinate::new(x, y)).is_some() {
-                    write!(f,"# ")?;
-                }else {
-                    write!(f,". ")?;
-                }
-            }
-            writeln!(f)?;
-        }
+        // for x in self.height_range.clone() {
+        //     for y in self.width_range.clone() {
+        //         if self.get_pixel(&Coordinate::new(x, y)).is_some() {
+        //             write!(f, "# ")?;
+        //         } else {
+        //             write!(f, ". ")?;
+        //         }
+        //     }
+        //     writeln!(f)?;
+        // }
         Ok(())
     }
 }
@@ -237,15 +248,14 @@ impl From<Vec<String>> for ImageEnhancer {
 
         Self {
             image: Image {
-                pixels,
+                front_buffer: pixels,
                 width_range: 0..=max_width,
                 height_range: 0..=max_height,
                 back_buffer: HashSet::new(),
-                infinity_pixels: HashSet::new(),
-                infinity: [
+                infinity: (
                     *enhancement_algorithm.first().unwrap(),
                     *enhancement_algorithm.last().unwrap(),
-                ],
+                ),
             },
             enhancement_algorithm,
         }

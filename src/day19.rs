@@ -25,22 +25,19 @@ fn part2(input: Vec<String>) -> u64 {
     0
 }
 
-
 struct ScannerList {
     scanners: Vec<Scanner>,
 }
-
 
 struct Scanner {
     name: u16,
     beacons: HashSet<Beacon>,
 }
 
-#[derive( Hash, Copy, Clone, Eq, PartialEq)]
+#[derive(Hash, Copy, Clone, Eq, PartialEq)]
 struct Beacon(i32, i32, i32);
 
-
-impl Debug  for Beacon {
+impl Debug for Beacon {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?},{:?},{:?}", self.0, self.1, self.2)
     }
@@ -52,7 +49,7 @@ impl Debug for Scanner {
         for beacon in &self.beacons {
             writeln!(f, "{:?}", beacon)?;
         }
-        
+
         Ok(())
     }
 }
@@ -66,7 +63,6 @@ impl Debug for ScannerList {
         Ok(())
     }
 }
-
 
 impl From<Vec<String>> for ScannerList {
     fn from(value: Vec<String>) -> Self {
@@ -84,7 +80,8 @@ impl From<Vec<String>> for ScannerList {
                 });
                 count += 1;
                 beacons = HashSet::new();
-            } else { // The actual beacon information 
+            } else {
+                // The actual beacon information
                 let mut beacon_info = line.split(',');
                 beacons.insert(Beacon(
                     beacon_info.next().unwrap().parse::<i32>().unwrap(),
@@ -93,7 +90,7 @@ impl From<Vec<String>> for ScannerList {
                 ));
             }
         }
-        
+
         if !beacons.is_empty() {
             scanners.push(Scanner {
                 name: count,

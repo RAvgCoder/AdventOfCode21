@@ -17,7 +17,7 @@ impl Coordinate {
     pub const fn manhattan_distance(&self) -> i32 {
         self.i.abs() + self.j.abs()
     }
-    
+
     pub const fn transpose(&self) -> Self {
         Self::new(self.j, self.i)
     }
@@ -117,7 +117,7 @@ pub mod direction {
         East,
         South,
         West,
-        Current
+        Current,
     }
 
     impl Direction {

@@ -60,7 +60,6 @@ fn part2(input: Vec<SnailFish>) -> u64 {
     rx.into_iter().max().unwrap()
 }
 
-
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum SnailToken {
     OpenParen,
@@ -362,17 +361,17 @@ mod snail_fish_tests {
                 "[[[[0,7],4],[[7,8],[0,[6,7]]]],[1,1]]",
             ),
         ]
-            .map(|(i, e)| {
-                (
-                    i.parse::<SnailFish>().unwrap(),
-                    e.parse::<SnailFish>().unwrap(),
-                )
-            })
-            .into_iter()
-            .for_each(|(mut input, expected)| {
-                input.split();
-                assert_eq!(input, expected, "Failed to split SnailFish");
-            })
+        .map(|(i, e)| {
+            (
+                i.parse::<SnailFish>().unwrap(),
+                e.parse::<SnailFish>().unwrap(),
+            )
+        })
+        .into_iter()
+        .for_each(|(mut input, expected)| {
+            input.split();
+            assert_eq!(input, expected, "Failed to split SnailFish");
+        })
     }
 
     #[test]
@@ -394,17 +393,17 @@ mod snail_fish_tests {
                 "[[[[0,7],4],[15,[0,13]]],[1,1]]",
             ),
         ]
-            .map(|(input, expected)| {
-                (
-                    input.parse::<SnailFish>().unwrap(),
-                    expected.parse::<SnailFish>().unwrap(),
-                )
-            })
-            .into_iter()
-            .for_each(|(mut input, expected)| {
-                input.explode();
-                assert_eq!(input, expected, "Failed to explode SnailFish");
-            });
+        .map(|(input, expected)| {
+            (
+                input.parse::<SnailFish>().unwrap(),
+                expected.parse::<SnailFish>().unwrap(),
+            )
+        })
+        .into_iter()
+        .for_each(|(mut input, expected)| {
+            input.explode();
+            assert_eq!(input, expected, "Failed to explode SnailFish");
+        });
     }
 
     #[test]
@@ -424,11 +423,11 @@ mod snail_fish_tests {
                 4140,
             ),
         ]
-            .map(|(input, expected)| (input.parse::<SnailFish>().unwrap(), expected))
-            .into_iter()
-            .for_each(|(input, expected)| {
-                assert_eq!(input.magnitude(), expected, "Failed to calculate magnitude");
-            });
+        .map(|(input, expected)| (input.parse::<SnailFish>().unwrap(), expected))
+        .into_iter()
+        .for_each(|(input, expected)| {
+            assert_eq!(input.magnitude(), expected, "Failed to calculate magnitude");
+        });
     }
 
     #[test]
@@ -504,20 +503,20 @@ mod snail_fish_tests {
                 "[[[[8,7],[7,7]],[[8,6],[7,7]]],[[[0,7],[6,6]],[8,7]]]",
             ),
         ]
-            .map(|AddTest(AddInput(a, b), e)| {
+        .map(|AddTest(AddInput(a, b), e)| {
+            (
                 (
-                    (
-                        a.parse::<SnailFish>().unwrap(),
-                        b.parse::<SnailFish>().unwrap(),
-                    ),
-                    e.parse::<SnailFish>().unwrap(),
-                )
-            })
-            .into_iter()
-            .enumerate()
-            .for_each(|(idx, ((mut a, b), expected))| {
-                a += b;
-                assert_eq!(a, expected, "Failed to add SnailFish for test {}", idx);
-            });
+                    a.parse::<SnailFish>().unwrap(),
+                    b.parse::<SnailFish>().unwrap(),
+                ),
+                e.parse::<SnailFish>().unwrap(),
+            )
+        })
+        .into_iter()
+        .enumerate()
+        .for_each(|(idx, ((mut a, b), expected))| {
+            a += b;
+            assert_eq!(a, expected, "Failed to add SnailFish for test {}", idx);
+        });
     }
 }
