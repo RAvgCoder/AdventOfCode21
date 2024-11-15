@@ -1,5 +1,5 @@
 use crate::day21::board::Board;
-use crate::day21::die::Die;
+use crate::day21::die::Dice;
 use crate::utils::day_setup::Utils;
 use std::str::FromStr;
 
@@ -23,11 +23,9 @@ fn part1(input: Vec<String>) -> u32 {
 
     Board::new_deterministic(player1, player2)
         .play_till_score(SCORE)
-        .result()
 }
 
 fn part2(input: Vec<String>) -> u64 {
-    println!("Part 2 {:#?}", input);
     0
 }
 
@@ -40,13 +38,13 @@ mod die {
     pub struct Deterministic;
 
     #[derive(Debug)]
-    pub struct Die<T> {
+    pub struct Dice<T> {
         side: Cycle<RangeInclusive<u16>>,
         num_of_rolls: u16,
         _marker: PhantomData<T>,
     }
 
-    impl<T> Die<T> {
+    impl<T> Dice<T> {
         pub fn get_num_rolls(&self) -> u16 {
             self.num_of_rolls
         }
@@ -54,7 +52,7 @@ mod die {
 
     const RANGE: RangeInclusive<u16> = 1..=100;
     const ROLL_NUM: usize = 3;
-    impl Die<Deterministic> {
+    impl Dice<Deterministic> {
         pub fn new_deterministic() -> Self {
             Self {
                 side: RANGE.clone().cycle(),
@@ -72,58 +70,41 @@ mod die {
 
 mod board {
     use super::die::Deterministic;
-    use super::{Die, Pawn};
+    use super::{Dice, Pawn};
 
-    pub struct InPlay;
-    pub struct GameOver;
     #[derive(Debug)]
-    pub struct Board<T, D> {
-        die: Die<D>,
-        player: [Pawn; 2],
-        // Track who wins
-        winner: u8,
-        _marker: std::marker::PhantomData<T>,
+    pub struct Board<D> {
+        dice: Dice<D>,
+        players: [Pawn; 2],
     }
 
-    impl Board<InPlay, Deterministic> {
+    impl Board<Deterministic> {
         pub fn new_deterministic(player1: Pawn, player2: Pawn) -> Self {
             Self {
-                die: Die::new_deterministic(),
-                player: [player1, player2],
-                winner: 0,
-                _marker: std::marker::PhantomData,
+                dice: Dice::new_deterministic(),
+                players: [player1, player2],
             }
         }
 
-        pub fn play_till_score(self, score: u32) -> Board<GameOver, Deterministic> {
+        pub fn play_till_score(self, score: u32) -> u32 {
             let Self {
-                mut die,
-                mut player,
+                mut dice,
+                mut players,
                 ..
             } = self;
 
             let mut player_choice = (0..=1).cycle();
-            while !player[0].has_won(score) && !player[1].has_won(score) {
-                let next_roll = die.next_roll();
+            while !players[0].has_won(score) && !players[1].has_won(score) {
+                let next_roll = dice.next_roll();
                 let i = player_choice.next().unwrap();
-                let pawn = &mut player[i];
+                let pawn = &mut players[i];
                 pawn.update_score(next_roll);
             }
 
             // Create a new `Board` in the `GameOver` state
-            Board {
-                winner: if player[0].has_won(score) { 1 } else { 0 },
-                die,
-                player,
-                _marker: std::marker::PhantomData,
-            }
-        }
-    }
-
-    impl Board<GameOver, Deterministic> {
-        pub fn result(&self) -> u32 {
-            let pawn = &self.player[self.winner as usize];
-            pawn.score * self.die.get_num_rolls() as u32
+            let winner = if players[0].has_won(score) { 1 } else { 0 };
+            let pawn = &players[winner];
+            pawn.score * dice.get_num_rolls() as u32
         }
     }
 }
